@@ -1,4 +1,5 @@
 using LinearAlgebra
+using Plots
 
 function next_step(C, u)
     # Looks like it should be already ok when writing the matrix C
@@ -6,6 +7,7 @@ function next_step(C, u)
 end
 
 function dirichlet(N, α, start_u, steps)
+    x = [i/(N+1) for i in 1:N]
     u_n = zeros(N)
     u_n[Int((N + 1) / 2)] = start_u
     println(u_n)
@@ -19,12 +21,15 @@ function dirichlet(N, α, start_u, steps)
     C = inv(A) * B
     
     for _ in 1:steps
-        global u_n = C * u_n
+        u_n = C * u_n
+        check_conservation(u_n,N)
         println(u_n)
     end
+    plot(x,u_n, label="Dirichlet", show=true)
 end
 
 function neumann(N, α, start_u, steps)
+    x = [i/(N+1) for i in 1:N]
     u_n = zeros(N)
     u_n[Int((N + 1) / 2)] = start_u
     println(u_n)
@@ -41,14 +46,24 @@ function neumann(N, α, start_u, steps)
     C = inv(A) * B
     
     for _ in 1:steps
-        global u_n = C * u_n
-        check_conservation(u_n)
+        u_n = C * u_n
+        check_conservation(u_n,N)
         println(u_n)
+        # plot!(x,u_n, label="my label", show=true)
     end
+    plot!(x,u_n, label="Neumann", show=true)
 end
 
-function check_conservation(u)
-    println(sum(u))
+function exact_solution(γ, x0, start_u)
+    
+end
+
+function gaussian_exact(x, x0, γ, start_u)
+    return (start_u / sqrt(γ * pi)) * exp(-(x-x0)^2 / γ)
+end
+
+function check_conservation(u, N)
+    println(sum(u)/(N+1))
 end
 
 dt = 0.00001
@@ -57,6 +72,13 @@ D = 1
 @show dx = 1 / (N + 1)
 α = D * dt / (dx * dx)
 start_u = 1.0
+x0 = 0.5
+n_steps = 5000
 
-dirichlet(N, α, start_u, 5)
-neumann(N, α, start_u, 5)
+dirichlet(N, α, start_u/dx, n_steps)
+neumann(N, α, start_u/dx, n_steps)
+γ = 4*D*dt*n_steps
+x = [i/(N+1) for i in 1:N]
+exact = [gaussian_exact(x_i, x0, γ, start_u) for x_i in x]
+
+display(plot!(x,exact, label="Exact", show=true))

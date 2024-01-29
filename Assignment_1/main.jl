@@ -54,11 +54,35 @@ function neumann(N, α, start_u, steps)
     plot!(x,u_n, label="Neumann", show=true)
 end
 
-function exact_solution(γ, x0, start_u)
-    
+function analytical_solution(x, x0, γ, start_u, L, use_reflective)
+    val = 0.0
+    for n in 100000:-1:1
+        if use_reflective
+            val += exp(-((n*pi/L)^2)*γ/4) * reflective_bound_exact(x, L, n)*reflective_bound_exact(x0, L, n)
+        else
+            val += exp(-((n*pi/L)^2)*γ/4) * absorbing_bound_exact(x, L, n)*absorbing_bound_exact(x0, L, n)
+        end
+    end
+    return val * start_u 
 end
 
-function gaussian_exact(x, x0, γ, start_u)
+function reflective_bound_exact(x, L, n)
+    if n == 0
+        return sqrt(1/L)
+    else
+        return sqrt(2/L) * cos(n*pi*x/L)
+    end
+end
+
+function absorbing_bound_exact(x, L, n)
+    if n == 0
+        return 0.0
+    else
+        return sqrt(2/L) * sin(n*pi*x/L)
+    end
+end
+
+function gaussian_unbound(x, x0, γ, start_u)
     return (start_u / sqrt(γ * pi)) * exp(-(x-x0)^2 / γ)
 end
 
@@ -69,6 +93,7 @@ end
 dt = 0.00001
 N = 51
 D = 1
+L = 1.0
 @show dx = 1 / (N + 1)
 α = D * dt / (dx * dx)
 start_u = 1.0
@@ -79,6 +104,11 @@ dirichlet(N, α, start_u/dx, n_steps)
 neumann(N, α, start_u/dx, n_steps)
 γ = 4*D*dt*n_steps
 x = [i/(N+1) for i in 1:N]
-exact = [gaussian_exact(x_i, x0, γ, start_u) for x_i in x]
+unbound = [gaussian_unbound(x_i, x0, γ, start_u) for x_i in x]
 
-display(plot!(x,exact, label="Exact", show=true))
+display(plot!(x,unbound, label="Unbound", show=true))
+
+exact_reflective = [analytical_solution(x_i, x0, γ, start_u, L, true) for x_i in x]
+display(plot(x,exact_reflective, label="Exact_reflective", show=true))
+exact_absoribing = [analytical_solution(x_i, x0, γ, start_u, L, false) for x_i in x]
+display(plot(x,exact_absoribing, label="Exact_absorbing", show=true))

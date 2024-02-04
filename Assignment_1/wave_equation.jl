@@ -9,6 +9,18 @@ function initialize_wave(N)
     return u_x .* u_y'
 end
 
+function initialize_wave_focused(N)
+    r_0 = [0.5,0.5]
+    σ = 0.001
+    u = zeros(N+1, N+1)
+    for i in 0:N
+        for j in 0:N
+            u[i+1,j+1] = exp(-((i/N - r_0[1])^2+(j/N - r_0[2])^2)/σ)
+        end
+    end
+    return u
+end
+
 function set_boundaries(u)
     u[1, :] .= 0.0
     u[:, 1] .= 0.0
@@ -38,7 +50,7 @@ c = 1
 x = [i / N for i in 0:N]
 @show dx = 1 / N
 β = c^2 * dt^2 / dx^2
-u = initialize_wave(N)
+u = initialize_wave_focused(N)
 u = set_boundaries(u)
 u_old = u
 n_steps = 1000
@@ -49,10 +61,10 @@ anim = @animate for k in 1:n_steps
     new_u = update_u(u, u_old, β, N)
     u_old = u
     u = new_u
-    u_exact = exact_solution(N, dt * k)
+    # u_exact = exact_solution(N, dt * k)
     surface(u, c=:blues, zlim=(-1, 1), cbar=false, xlabel="X", ylabel="Y", title="Time Step: $k")
 end
-gif(anim, "/home/frossi/ComputationalPhysics/Assignment_1/wave_exact.gif", fps=100)
+gif(anim, "/home/frossi/ComputationalPhysics/Assignment_1/wave_focused.gif", fps=100)
 
 # display(u)
 

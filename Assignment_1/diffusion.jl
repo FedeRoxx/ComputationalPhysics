@@ -104,15 +104,15 @@ function neumann_space_dependent(N, α_vec, start_u, steps)
 end
 
 function unbounded_space_dependent(x, x0, t, D_plus, D_minus)
-    if x >= x0
+    #My guess is that it should be x0 = when change - when initial drop
+    if x >= x0 + 0.2
         result = exp(-(x - x0)^2 / (4 * D_plus * t))
-        return result * A_plus(t, x0, D_plus, D_minus) / sqrt(4 * pi * D_plus * t)
+        return result * A_plus(t, 0.2, D_plus, D_minus) / sqrt(4 * pi * D_plus * t)
     else
         result = exp(-(x - x0)^2 / (4 * D_minus * t))
-        return result * A_minus(t, x0, D_plus, D_minus) / sqrt(4 * pi * D_minus * t)
+        return result * A_minus(t, 0.2, D_plus, D_minus) / sqrt(4 * pi * D_minus * t)
     end
 end
-
 
 function analytical_solution(x, x0, γ, start_u, L, use_reflective)
     val = 0.0
@@ -151,7 +151,7 @@ function check_conservation(u, N)
 end
 
 function eval_D(x, x0, D_plus, D_minus)
-    if x >= x0
+    if x >= 0.7
         return D_plus
     else
         return D_minus
@@ -162,7 +162,7 @@ function A_plus(t, x0, D_plus, D_minus)
     result = (D_plus - D_minus) * x0^2 / (4 * D_minus * D_plus * t)
     result = exp(result) * sqrt(D_minus / D_plus) * (1 - erf(x0 / sqrt(4 * D_minus * t)))
     result += 1 + erf(x0 / sqrt(4 * D_plus * t))
-    result *= 2
+    result /= 2
     return 1 / result
 end
 
@@ -176,7 +176,7 @@ dt = 0.00001
 N = 51
 start_u = 1.0
 D = 1
-D_plus = 1.2
+D_plus = 1.6
 D_minus = 0.8
 L = 1.0
 x = [i / (N + 1) for i in 1:N]
@@ -185,7 +185,7 @@ x0 = L / 2
 α = D * dt / (dx * dx)
 α_vec = dt / (dx * dx) * [eval_D(x_i, x0, D_plus, D_minus) for x_i in x]
 
-n_steps = 500
+n_steps = 10000
 
 dirichlet(N, α, start_u / dx, n_steps)
 neumann(N, α, start_u / dx, n_steps)
@@ -196,11 +196,11 @@ display(plot!(x, unbound, label="Unbound_exact", show=true))
 
 exact_reflective = [analytical_solution(x_i, x0, γ, start_u, L, true) for x_i in x]
 display(plot(x, exact_reflective, label="Exact_reflective", show=true))
-exact_absoribing = [analytical_solution(x_i, x0, γ, start_u, L, false) for x_i in x]
-display(plot(x, exact_absoribing, label="Exact_absorbing", show=true))
+exact_absorbing = [analytical_solution(x_i, x0, γ, start_u, L, false) for x_i in x]
+display(plot(x, exact_absorbing, label="Exact_absorbing", show=true))
 
 dirichlet_space_dependent(N, α_vec, start_u, n_steps)
 neumann_space_dependent(N, α_vec, start_u, n_steps)
 
-unbound_sp_dependent = [start_u/dx* unbounded_space_dependent(x_i, x0, dt*n_steps, D_plus, D_minus) for x_i in x]
+unbound_sp_dependent = [start_u*dx* unbounded_space_dependent(x_i, x0, dt*n_steps, D_plus, D_minus) for x_i in x]
 display(plot!(x, unbound_sp_dependent, label="Unbound_dependent", show=true))

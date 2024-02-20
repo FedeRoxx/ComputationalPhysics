@@ -190,12 +190,23 @@ function init_u_gauss(x)
     return ( sqrt(σ * pi)) * exp(-(x - 0.5)^2 / σ)
 end
 
-function update_u_hopf(u, γ)
+function oldupdate_u_hopf(u, γ)
     updated_u = u
     for n in 2:N-1
         updated_u[n] -= γ/4*(u[n+1]^2-u[n-1]^2)  
         updated_u[n] += γ^2/8*(u[n+1]+u[n])*(u[n+1]^2-u[n]^2)
         updated_u[n] -= γ^2/8*(u[n]+u[n-1])*(u[n]^2-u[n-1]^2) 
+    end
+
+    return updated_u
+end
+
+function update_u_hopf(u, γ)
+    updated_u = u
+    for n in 2:N-1
+        updated_u[n] -= γ/4*(u[n+1]^2-u[n-1]^2)  
+        updated_u[n] += γ^2/16*(u[n+1])*(u[n+1]^2-u[n]^2)
+        updated_u[n] -= γ^2/16*(u[n-1])*(u[n]^2-u[n-1]^2) 
     end
 
     return updated_u

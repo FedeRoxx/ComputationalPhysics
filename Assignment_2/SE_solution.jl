@@ -123,11 +123,9 @@ function initialize_from_delta(N, dx)
 end
 
 function time_evolution(alpha_n, psi_exact, lambda_exact, t, N)
-    # println(length(alpha_n), size(psi_exact), length(lambda_exact))
-    # println(lambda_exact)
     evoluted_Psi = zeros(N+1)im
     for n in 1:N-1
-        @show evoluted_Psi[:] += alpha_n[n]*exp(-lambda_exact[n]*1im *t)*psi_exact[:,n+1]
+        evoluted_Psi[:] += alpha_n[n]*exp(-lambda_exact[n]*1im *t)*psi_exact[:,n+1]
     end
     return evoluted_Psi
 end
@@ -165,7 +163,8 @@ println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
 ##############################
 
 function solution_FDM_box(V_n, N, dx)
-    H = SymTridiagonal(2*ones(N)+V_n, -ones(N-1)) / (dx^2)
+    H = SymTridiagonal(2*ones(N), -ones(N-1)) / (dx^2)
+    H = H + diagm(V_n)
     display(H)
     lambda_vec = eigvals(H)
     @show psi_vec = eigvecs(H)
@@ -191,19 +190,44 @@ function initialize_from_superposition(psi_barrier)
     return psi_0
 end
 
+function root_function(λ, v0)
+
+end
+
 # Checking the results
 V_n = zeros(N-1)
-lambda_box, psi_barrier = solution_FDM_box(V_n, N-1, dx)
+lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 
 V_n = potential_barrier(1e3, N, dx)
-lambda_box, psi_barrier = solution_FDM_box(V_n, N-1, dx)
+lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 # Plotting first 3 eigenfunctions
-plotting=[2,3,4]
+plotting=[1,2,3]
 labels=["Numerical ψ1" "Numerical ψ2" "Numerical ψ3"]
 display(plot(x_vec, psi_barrier[:,plotting], label=labels))
-println(lambda_box)
+println(lambda_barrier)
 #### NOTE ####
 # The eigenvalues grow up in couples 
 psi_0 = initialize_from_superposition(psi_barrier)
+display(plot(x_vec, psi_0, title="Initial condition"))
+println("Norm of Ψ_0 as (ψ_1 + ψ_2) / √2: ", L2_integral(psi_0, dx))
+alpha_n = [integrate_product(psi_barrier[:,i], psi_0, N, dx) for i in 2:N]
+println("α_n: ",  alpha_n)
+evoluted_Psi = time_evolution(alpha_n, psi_barrier, lambda_barrier, 1, N)
+println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
+
+t_bar=π/(lambda_barrier[2]-lambda_barrier[1])
+println(t_bar)
+
+anim = @animate for k in 1:200
+    evoluted_Psi = time_evolution(alpha_n, psi_barrier, lambda_barrier, t_bar*k/100, N) #t_bar*(1-0.01*(k-50))
+    module_Psi = [conj(psi_i)*psi_i for psi_i in evoluted_Psi]
+    plot(x_vec, real.(module_Psi), ylim=(-0.05, 6), label="Squared module", xlabel="Index", ylabel="|Ψ|^2", title="Squared module at time τ*"*string(k/100))
+end
+gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier.gif", fps=60)
+
+### It starts on one side and it end up on the other
+
+#### Root finding
+
 
 

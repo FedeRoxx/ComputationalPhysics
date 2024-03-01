@@ -191,14 +191,24 @@ function initialize_from_superposition(psi_barrier)
 end
 
 function root_function(λ, v0)
-
+    if λ > v0
+        throw("Root function is defined for 0 < λ , v0")
+    end
+    k = sqrt(λ)
+    κ = sqrt(v0 - λ)
+    A = κ*sin(k/3)+k*cos(k/3)
+    A = A^2 * exp(κ/3)
+    B = κ*sin(k/3)-k*cos(k/3)
+    B = B^2 * exp(-κ/3)
+    return A - B
 end
 
 # Checking the results
 V_n = zeros(N-1)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 
-V_n = potential_barrier(1e3, N, dx)
+v0 = 22
+V_n = potential_barrier(v0, N, dx)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 # Plotting first 3 eigenfunctions
 plotting=[1,2,3]
@@ -218,16 +228,19 @@ println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
 t_bar=π/(lambda_barrier[2]-lambda_barrier[1])
 println(t_bar)
 
+if false
 anim = @animate for k in 1:200
     evoluted_Psi = time_evolution(alpha_n, psi_barrier, lambda_barrier, t_bar*k/100, N) #t_bar*(1-0.01*(k-50))
     module_Psi = [conj(psi_i)*psi_i for psi_i in evoluted_Psi]
     plot(x_vec, real.(module_Psi), ylim=(-0.05, 6), label="Squared module", xlabel="Index", ylabel="|Ψ|^2", title="Squared module at time τ*"*string(k/100))
 end
-gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier.gif", fps=60)
-
+display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier.gif", fps=60))
+end
 ### It starts on one side and it end up on the other
 
 #### Root finding
+root_f = [root_function(λ_i, v0) for λ_i in 1:v0-1]
+display(plot( 1:v0-1, root_f, xlabel="λ", label="f(λ)", title="Root function"))
 
-
-
+# Here the root_finding algorithm, if I had one
+#2/3 x cos(x/3) (6 sin(x/3) + x cos(x/3)) = 0

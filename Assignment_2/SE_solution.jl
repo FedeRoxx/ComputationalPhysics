@@ -1,5 +1,4 @@
 using LinearAlgebra
-# import Pkg; Pkg.add("Plots");
 using Plots
 using SpecialFunctions
 
@@ -106,7 +105,7 @@ function simpsons_integral(f, N, dx)
     return sum * dx / 3
 end
 
-function initialize_from_psi1(N, dx)
+function initialize_from_psi1_exact(N, dx)
     # This is eigenfunction ψ_1 
     psi_0 = [sqrt(2)*sin(i*pi*dx) for i in 0:N]
     return psi_0
@@ -141,7 +140,7 @@ println("<ψ_n|ψ_m>")
 display(overlap)
 
 # Time evolution from ψ_1
-psi_0 = initialize_from_psi1(N, dx)
+psi_0 = initialize_from_psi1_exact(N, dx)
 println("Norm of Ψ_0 as ψ_1: ", L2_integral(psi_0, dx))
 alpha_n = [integrate_product(psi_exact[:,i], psi_0, N, dx) for i in 2:N]
 println("α_n: ",  alpha_n)
@@ -156,6 +155,10 @@ println("α_n: ",  alpha_n)
 @show evoluted_Psi = time_evolution(alpha_n, psi_exact, lambda_exact, 1, N)
 println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
 # I have no idea what happens for t>0
+
+
+
+
 
 
 ##############################
@@ -203,11 +206,36 @@ function root_function(λ, v0)
     return A - B
 end
 
+function initialize_from_psi1(psi_barrier)
+    # This is eigenfunction ψ_1 
+    psi_0 = psi_barrier[:,2]
+    return psi_0
+end
+
+function t_evolution_euler(psi_0, N, dx, V_n, dt)
+    H = SymTridiagonal(2*ones(N), -ones(N-1)) / (dx^2)
+    H = H + diagm(V_n)
+    H = diagm(ones(N)) - 1im * dt * H
+    psi_0_evol = zeros(N+2)im
+    psi_0_evol[2:end-1] = H*psi_0[2:end-1]
+    return psi_0_evol
+end
+
+function t_evolution_CN(psi_0, N, dx, V_n, dt)
+    H = SymTridiagonal(2*ones(N), -ones(N-1)) / (dx^2)
+    H = H + diagm(V_n)
+    H = inv(diagm(ones(N)) + 0.5im * dt * H) * (diagm(ones(N)) - 0.5im * dt * H)
+    psi_0_evol = zeros(N+2)im
+    psi_0_evol[2:end-1] = H*psi_0[2:end-1]
+    return psi_0_evol
+end
+    
+
 # Checking the results
 V_n = zeros(N-1)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 
-v0 = 22
+v0 = 1e3
 V_n = potential_barrier(v0, N, dx)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 # Plotting first 3 eigenfunctions
@@ -238,9 +266,63 @@ display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution
 end
 ### It starts on one side and it end up on the other
 
-#### Root finding
+#### Root finding ###
 root_f = [root_function(λ_i, v0) for λ_i in 1:v0-1]
 display(plot( 1:v0-1, root_f, xlabel="λ", label="f(λ)", title="Root function"))
 
 # Here the root_finding algorithm, if I had one
 #2/3 x cos(x/3) (6 sin(x/3) + x cos(x/3)) = 0
+ 
+#Task 3.6 if we lower v0, we get less states with λ < v0. When cos = 0 we get a sinh which is always positive
+
+
+
+### Step by step evolution ###
+println("Euler method")
+for i in 1:100
+    psi_0 = initialize_from_psi1(psi_barrier)
+    global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.0001*i)
+    println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
+end
+#NOTE L2 norm is increasing
+
+println("Crank nicolson method")
+for i in 1:10
+    psi_0 = initialize_from_psi1(psi_barrier)
+    global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
+    println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
+end
+if false
+    anim = @animate for i in 1:10
+        psi_0 = initialize_from_psi1(psi_barrier)
+        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 100*i)
+        module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
+        plot(x_vec, real.(module_Psi), label="Squared module", xlabel="Index", ylabel="|Ψ|^2", title="Squared module at time *"*string(0.01*i))
+    end
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_CN.gif", fps=60))
+end
+# If I push it to large times it won't change.
+# Not even when changing psi_0 to superposition.
+# Not even when making Psi_0 Im
+# Not even with the delta
+
+
+#####################
+# PERIODIC DETUNING #
+#####################
+
+function double_potential_barrier(V0, V1, N, dx)
+    V_n = zeros(N-1)
+    for i in 1:N-1
+        if 1/3 <= i*dx < 2/3
+            V_n[i] = V0
+        elseif 2/3 <= i*dx < 1
+            V_n[i] = V1
+        end
+    end
+    return V_n
+end
+
+
+
+solution_FDM_box(V_n, N, dx)

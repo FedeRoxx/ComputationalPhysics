@@ -168,9 +168,9 @@ println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
 function solution_FDM_box(V_n, N, dx)
     H = SymTridiagonal(2*ones(N), -ones(N-1)) / (dx^2)
     H = H + diagm(V_n)
-    display(H)
+    # display(H)
     lambda_vec = eigvals(H)
-    @show psi_vec = eigvecs(H)
+    psi_vec = eigvecs(H)
     for n in 1:N
         psi_vec[:,n] = psi_vec[:,n] / L2_integral(psi_vec[:,n], dx)
     end
@@ -323,6 +323,44 @@ function double_potential_barrier(V0, V1, N, dx)
     return V_n
 end
 
+λ1_list = []
+λ2_list = []
+v_list = []
+for exp in -40:40
+    local V_n = double_potential_barrier(v0, sign(exp)*10^(abs(exp)/12), N, dx)
+    lambda_double, psi_double = solution_FDM_box(V_n, N-1, dx)
+    push!(v_list,  sign(exp)*10^(abs(exp)/12))
+    push!(λ1_list, lambda_double[1])
+    push!(λ2_list, lambda_double[2])
+end
+plot(v_list, λ1_list, xlabel="V1", label="λ1", title="Eigenvalues depending on V1")
+display(plot!(v_list, λ2_list, label="λ2"))
 
 
-solution_FDM_box(V_n, N, dx)
+
+λ1_list = []
+λ2_list = []
+v_list = []
+
+plotting = [2,3]
+labels = ["ψ1" "ψ2"]
+
+for exp in -500:500
+    local V_n = double_potential_barrier(v0, exp, N, dx)
+    lambda_double, psi_double = solution_FDM_box(V_n, N-1, dx)
+    push!(v_list,  exp)
+    push!(λ1_list, lambda_double[1])
+    push!(λ2_list, lambda_double[2])
+    if exp == -500
+        display(plot(x_vec, psi_double[:,plotting], label=labels, title="First eigenfunctions at V1 = -500"))
+    elseif exp == 500
+        display(plot(x_vec, psi_double[:,plotting], label=labels, title="First eigenfunctions at V1 = 500"))
+    elseif exp == 0
+        println("ΔE at V1=0 : ", lambda_double[2]-lambda_double[1])
+    end
+end
+
+plot(v_list, λ1_list, xlabel="V1", label="λ1", title="Eigenvalues depending on V1")
+display(plot!(v_list, λ2_list, label="λ2"))
+
+display(plot(v_list, λ2_list .- λ1_list, xlabel="V1", label="λ1", title="Eigenvalues difference depending on V1"))

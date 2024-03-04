@@ -168,16 +168,13 @@ println("α_n: ",  alpha_n)
 println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
 # I have no idea what happens for t>0
 if false
-    anim = @animate for k in 1:200
-        evoluted_Psi = time_evolution(alpha_n, psi_exact, lambda_exact, k/100000, N) #t_bar*(1-0.01*(k-50))
+    anim = @animate for k in 0:200
+        evoluted_Psi = time_evolution(alpha_n, psi_exact, lambda_exact, 1/(pi)+0.00001*k, N) #t_bar*(1-0.01*(k-50))
         module_Psi = [conj(psi_i)*psi_i for psi_i in evoluted_Psi]
-        plot(x_vec, real.(module_Psi), label=L"|Ψ|^2", ylim=(-0.05, 10.1), xlabel=L"x", ylabel=L"|Ψ|^2(x)", title="Evolution of "*L"δ(x-0.5)"*@sprintf " at time %.00005f" k/100000)
+        plot(x_vec, real.(module_Psi), label=L"|Ψ|^2", ylim=(-0.05, 10.1), xlabel=L"x", ylabel=L"|Ψ|^2(x)", title="Evolution of "*L"δ(x-0.5)"*@sprintf " at time 1/π + %.5f" 0.00001*k)
     end
-    display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_delta.gif", fps=60))
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_delta.gif", fps=30))
 end
-
-
-
 
 
 ##############################

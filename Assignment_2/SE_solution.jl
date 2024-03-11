@@ -290,8 +290,27 @@ end
 ### It starts on one side and it end up on the other
 
 #### Root finding ###
-root_f = [root_function(λ_i, v0) for λ_i in 1:v0-1]
-display(plot( 1:v0-1, root_f, xlabel="λ", label="f(λ)", title="Root function"))
+root_f = [root_function(λ_i, v0) for λ_i in 1:v0]
+display(plot( 1:v0, root_f, xlabel=L"λ", label=L"f(λ)", title="Root function at "*L"v_0 = 10^3"))
+
+v0=1e5
+root_f = [root_function(λ_i, v0) for λ_i in 1:v0]
+display(plot( 1:v0, root_f, xlim=(0,2.5e4), xlabel=L"λ", label=L"f(λ), v_0 = 10^5", title="Root function at "*L"v_0 = 10^5"))
+
+v0 = 24
+root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
+x = [λ_i/10 for λ_i in 1:10*v0]
+plot(x, root_f, xlim=(0,25), xticks = 0:1:25, xlabel=L"λ", label=L"f(λ), v_0 = 24", title="Root function around "*L"v_0 = 22")
+v0 = 23
+root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
+println(root_f[end])
+x = [λ_i/10 for λ_i in 1:10*v0]
+plot!(x, root_f, xlim=(0,25), label=L"f(λ), v_0 = 23")
+v0 = 22
+root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
+x = [λ_i/10 for λ_i in 1:10*v0]
+display(plot!( x, root_f, xlim=(0,25), label=L"f(λ), v_0 = 22"))
+v0 = 1e3
 
 # Here the root_finding algorithm, if I had one
 #2/3 x cos(x/3) (6 sin(x/3) + x cos(x/3)) = 0
@@ -307,6 +326,17 @@ for i in 1:100
     global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.0001*i)
     println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
 end
+if false
+    anim = @animate for i in 1:100
+        psi_0 = initialize_from_psi1(psi_barrier)
+        global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.0001*i)
+        module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
+        plot(x_vec, real.(module_Psi), ylim=(-0.05,5), label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.4f L2 norm: %.2f " 0.0001*i L2_integral(psi_0, dx))
+    end
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_FE.gif", fps=60))
+end
+
+
 #NOTE L2 norm is increasing
 
 println("Crank nicolson method")
@@ -316,11 +346,11 @@ for i in 1:10
     println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
 end
 if false
-    anim = @animate for i in 1:10
+    anim = @animate for i in 1:100
         psi_0 = initialize_from_psi1(psi_barrier)
-        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 100*i)
+        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
         module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
-        plot(x_vec, real.(module_Psi), label="Squared module", xlabel="Index", ylabel="|Ψ|^2", title="Squared module at time *"*string(0.01*i))
+        plot(x_vec, real.(module_Psi), ylim=(-0.05,5),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.4f L2 norm: %.2f " 0.0001*i L2_integral(psi_0, dx))
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_CN.gif", fps=60))
 end

@@ -318,13 +318,12 @@ v0 = 1e3
 #Task 3.6 if we lower v0, we get less states with λ < v0. When cos = 0 we get a sinh which is always positive
 
 
-
 ### Step by step evolution ###
 println("Euler method")
 for i in 1:100
     psi_0 = initialize_from_psi1(psi_barrier)
-    global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.0001*i)
-    println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
+    global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.00001*i)
+    println("At time : ",0.00001*i, " squared norm is : ", L2_integral(psi_0, dx))
 end
 if false
     anim = @animate for i in 1:100
@@ -338,12 +337,26 @@ end
 
 
 #NOTE L2 norm is increasing
+N=100
+dx = 1/N
+x_vec = dx*[i for i in 0:N]
+V_n = potential_barrier(v0, N, dx)
+
 
 println("Crank nicolson method")
 for i in 1:10
-    psi_0 = initialize_from_psi1(psi_barrier)
+    psi_0 = initialize_from_delta(N, dx)
     global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
     println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
+end
+if false
+    anim = @animate for i in 1:100
+        psi_0 = initialize_from_delta(N, dx)
+        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
+        module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
+        plot(x_vec, real.(module_Psi), ylim=(-0.05,105),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.5f L2 norm: %.2f " 0.1*i L2_integral(psi_0, dx))
+    end
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_CN_delta.gif", fps=60))
 end
 if false
     anim = @animate for i in 1:100
@@ -359,6 +372,10 @@ end
 # Not even when making Psi_0 Im
 # Not even with the delta
 
+N=100
+dx = 1/N
+x_vec = dx*[i for i in 0:N]
+V_n = potential_barrier(v0, N, dx)
 
 #####################
 # PERIODIC DETUNING #
@@ -391,7 +408,7 @@ end
 v_list = []
 
 plotting = [2,3]
-labels = ["ψ1" "ψ2"]
+labels = [L"ψ_1" L"ψ_2"]
 
 for v1 in -500:500
     local V_n = double_potential_barrier(v0, v1, N, dx)
@@ -400,22 +417,23 @@ for v1 in -500:500
     push!(λ1_list, lambda_double[1])
     push!(λ2_list, lambda_double[2])
     if v1 == -500
-        display(plot(x_vec, psi_double[:,plotting], label=labels, title="First eigenfunctions at V1 = -500"))
+        display(plot(x_vec, psi_double[:,plotting], xlabel=L"x", ylabel=L"ψ(x)",label=labels, title="First eigenfunctions at "*L"v_1 = -500"))
     elseif v1 == 500
-        display(plot(x_vec, psi_double[:,plotting], label=labels, title="First eigenfunctions at V1 = 500"))
+        display(plot(x_vec, psi_double[:,plotting], xlabel=L"x", ylabel=L"ψ(x)", label=labels, title="First eigenfunctions at "*L"v_1 = 500"))
     elseif v1 == 0
         println("ΔE at V1=0 : ", lambda_double[2]-lambda_double[1])
     end
 end
 
-plot(v_list, λ1_list, xlabel="V1", label=" λ0", title="Eigenvalues depending on V1")
-display(plot!(v_list, λ2_list, label="λ1"))
+plot(v_list, λ1_list, xlabel=L"v_1", label=L" λ_0", title="Eigenvalues depending on "*L"v_1")
+display(plot!(v_list, λ2_list, label=L"λ_1"))
 
-display(plot(v_list, λ2_list .- λ1_list, xlabel="V1", label="λ1-λ0", title="Eigenvalues difference depending on V1"))
+display(plot(v_list, λ2_list .- λ1_list, xlabel=L"v_1", label=L"λ_1-λ_0", title="Eigenvalues difference depending on "*L"v_1"))
 
 # Finding τ
 V_n = double_potential_barrier(v0, 0.0, N, dx)
 lambda_ref, psi_ref = solution_FDM_box(V_n, N-1, dx)
+display(plot(x_vec, psi_ref[:,2:3]))
 println("τ with v1 = 0 : ", evaluate_τ(V_n, psi_ref, N-1, dx))
 
 τ_list = []
@@ -425,4 +443,6 @@ for v1 in -500:500
     push!(τ_list, evaluate_τ(V_n, psi_ref, N-1, dx))
     push!(v_list,  v1)
 end
-display(plot(v_list, τ_list, xlabel="V1", label="τ(V1)", title="τ depending on V1"))
+println(τ_list ./ v_list)
+
+display(plot(v_list, τ_list, xlabel=L"v_1", label=L"τ(v_1)", title=L"τ "*" as a function of "*L" v_1"))

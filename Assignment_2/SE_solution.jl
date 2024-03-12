@@ -410,14 +410,14 @@ function build_N(ε0, t)
 end
 
 function solve_volterra(ψ_0, max_k, dt, ε0)
-    f_list = []
+    f_list = [ψ_0]
     N_list = []
     for k in 1:max_k
         Nk = -1im*dt*build_N(ε0, k*dt)
         Mk = inv(diagm(ones(2))-0.5*Nk)
         f0 = copy(ψ_0)
-        for l in eachindex(f_list)
-            f0 += N_list[l]*f_list[l]
+        for l in eachindex(N_list)
+            f0 += N_list[l]*f_list[l+1]
         end
         push!(f_list, Mk*f0)
         push!(N_list, Nk)
@@ -471,4 +471,25 @@ println(τ_list ./ v_list)
 
 display(plot(v_list, τ_list, xlabel=L"v_1", label=L"τ(v_1)", title=L"τ "*" as a function of "*L" v_1"))
 
-println(solve_volterra([1,0],50, 100, ε0))
+dt = 5
+max_k = 600
+ψ_n = solve_volterra([1.0im,0.0im], max_k, dt, ε0)
+t_vec = [dt*i for i in 0:max_k]
+display(ψ_n)
+prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
+prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
+plot(t_vec, prob_exact , label="Exact averaged")
+display(plot!(t_vec, prob , label="Numerical"))
+
+
+dt = 500
+max_k = 500
+ψ_n = solve_volterra([1.0im,0.0im], max_k, dt, ε0)
+t_vec = [dt*i for i in 0:max_k]
+display(ψ_n)
+prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
+prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
+plot(t_vec, prob_exact )
+plot!([142727],[0.0], marker = :circle)
+display(plot!(t_vec, prob ))
+

@@ -402,6 +402,29 @@ function evaluate_τ(V_n, ψ, N, dx)
     return integrate_product(ψ[:,2], ψ_test, N, dx)
 end
 
+function build_N(ε0, t)
+    Nk = zeros(2,2)im
+    Nk[1,2] = exp(-1im*t*ε0)
+    Nk[2,1] = exp(1im*t*ε0)
+    return Nk * 0.02*ε0*sin(ε0*t)
+end
+
+function solve_volterra(ψ_0, max_k, dt, ε0)
+    f_list = []
+    N_list = []
+    for k in 1:max_k
+        Nk = -1im*dt*build_N(ε0, k*dt)
+        Mk = inv(diagm(ones(2))-0.5*Nk)
+        f0 = copy(ψ_0)
+        for l in eachindex(f_list)
+            f0 += N_list[l]*f_list[l]
+        end
+        push!(f_list, Mk*f0)
+        push!(N_list, Nk)
+    end
+    return f_list
+end
+
 
 λ1_list = []
 λ2_list = []
@@ -421,7 +444,8 @@ for v1 in -500:500
     elseif v1 == 500
         display(plot(x_vec, psi_double[:,plotting], xlabel=L"x", ylabel=L"ψ(x)", label=labels, title="First eigenfunctions at "*L"v_1 = 500"))
     elseif v1 == 0
-        println("ΔE at V1=0 : ", lambda_double[2]-lambda_double[1])
+        global ε0 = lambda_double[2]-lambda_double[1]
+        println("ΔE at V1=0 : ", ε0)
     end
 end
 
@@ -446,3 +470,5 @@ end
 println(τ_list ./ v_list)
 
 display(plot(v_list, τ_list, xlabel=L"v_1", label=L"τ(v_1)", title=L"τ "*" as a function of "*L" v_1"))
+
+println(solve_volterra([1,0],50, 100, ε0))

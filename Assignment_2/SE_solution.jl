@@ -283,7 +283,7 @@ if false
 anim = @animate for k in 1:200
     evoluted_Psi = time_evolution(alpha_n, psi_barrier, lambda_barrier, t_bar*k/100, N) #t_bar*(1-0.01*(k-50))
     module_Psi = [conj(psi_i)*psi_i for psi_i in evoluted_Psi]
-    plot(x_vec, real.(module_Psi), ylim=(-0.05, 6), label="Squared module", xlabel="Index", ylabel="|Ψ|^2", title="Squared module at time τ*"*string(k/100))
+    plot(x_vec, real.(module_Psi), ylim=(-0.05, 6), label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module at time %.2f τ" k/100 )
 end
 display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier.gif", fps=60))
 end
@@ -472,24 +472,24 @@ println(τ_list ./ v_list)
 display(plot(v_list, τ_list, xlabel=L"v_1", label=L"τ(v_1)", title=L"τ "*" as a function of "*L" v_1"))
 
 dt = 5
-max_k = 600
-ψ_n = solve_volterra([1.0im,0.0im], max_k, dt, ε0)
+max_k = 1200
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0)
 t_vec = [dt*i for i in 0:max_k]
 display(ψ_n)
 prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
 prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
-plot(t_vec, prob_exact , label="Exact averaged")
-display(plot!(t_vec, prob , label="Numerical"))
+plot(t_vec, prob_exact , label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_1" )
+display(plot!(t_vec, prob , label="Numerical "*L"p(t)"))
 
 
 dt = 500
 max_k = 500
-ψ_n = solve_volterra([1.0im,0.0im], max_k, dt, ε0)
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0)
 t_vec = [dt*i for i in 0:max_k]
 display(ψ_n)
 prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
 prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
-plot(t_vec, prob_exact )
-plot!([142727],[0.0], marker = :circle)
-display(plot!(t_vec, prob ))
+plot(t_vec, prob_exact, label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_2")
+# plot!([142727],[0.0], marker = :circle)
+display(plot!(t_vec, prob ,label="Numerical "*L"p(t)"))
 

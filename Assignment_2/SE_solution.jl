@@ -64,17 +64,17 @@ println("L2 norm of psi_exact_1 : ", L2_integral(psi_exact[:,2], dx))
 println("L2 norm of psi_numerical_1 : ", L2_integral(psi_vec[:,2],dx))
 
 #This to fix the sign
-# println(min(L2_integral(psi_exact[:,1]-psi_vec[:,1], dx), L2_integral(psi_exact[:,1]+psi_vec[:,1], dx)))
 println("L2 norm of psi_exact_1 - psi_numerical_1 : ", min(L2_integral(psi_exact[:,2]-psi_vec[:,2], dx), L2_integral(psi_exact[:,2]+psi_vec[:,2], dx)))
 println("L2 norm of psi_exact_2 - psi_numerical_2 : ", min(L2_integral(psi_exact[:,3]-psi_vec[:,3], dx), L2_integral(psi_exact[:,3]+psi_vec[:,3], dx)))
 
 # Plotting eigenval in function of n
 plot(n_vec, lambda_exact, xlabel=L"n", ylabel=L"λ_n", label=L"λ_n"*" exact", title="Comparison of eigenvalues as function of "*L"n")
 display(plot!(n_vec, lambda_vec, label=L"λ_n"*" numerical"))
+
+# Relative difference
 display(plot(n_vec, (lambda_exact.-lambda_vec)./lambda_exact, label=L"λ_n"*" relative difference"))
 
-
-# Plotting numerical vs exact_solution
+# Plotting numerical vs exact_solution eigenvalues
 display(plot(lambda_exact, lambda_vec, label="Numerical"))
 
 
@@ -84,8 +84,6 @@ display(plot(lambda_exact, lambda_vec, label="Numerical"))
 ################################
 # EXPANSIONS IN EIGENFUNCTIONS #
 ################################
-
-# Defining overlaps integrals
 
 function integrate_product(f1, f2, N, dx)
     # Returns integral of f1 * f2 
@@ -166,7 +164,8 @@ alpha_n = [integrate_product(psi_exact[:,i], psi_0, N, dx) for i in 2:N]
 println("α_n: ",  alpha_n)
 @show evoluted_Psi = time_evolution(alpha_n, psi_exact, lambda_exact, 1, N)
 println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
-# I have no idea what happens for t>0
+
+# Animation
 if false
     anim = @animate for k in 0:200
         evoluted_Psi = time_evolution(alpha_n, psi_exact, lambda_exact, 1/(pi)+0.00001*k, N) #t_bar*(1-0.01*(k-50))
@@ -204,7 +203,7 @@ function potential_barrier(V0, N, dx)
 end
 
 function initialize_from_superposition(psi_barrier)
-    # This is eigenfunction ψ_1 
+    # This is eigenfunction ψ_1+ψ_2 / sqrt(2)
     psi_0 = (psi_barrier[:,2]+psi_barrier[:,3])/sqrt(2)
     return psi_0
 end
@@ -247,15 +246,15 @@ function t_evolution_CN(psi_0, N, dx, V_n, dt)
 end
     
 
-# Checking the results
+# Checking with v_0 = 0
 V_n = zeros(N-1)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 
+# Now v_0 = 1000
 v0 = 1e3
 V_n = potential_barrier(v0, N, dx)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 println("First 10 λ_n from box with barrier of v_0 = $v0 : ", lambda_barrier[1:10])
-println("Last 10 λ_n from box with barrier of v_0 = $v0 : ", lambda_barrier[90:99])
 plot(1:20, lambda_exact[1:20], xlabel=L"n", ylabel=L"λ_n", label=L"λ_n, v_0 = 0"*", exact", marker = :circle, title="First 20 eigenvalues depending on "*L"n")
 plot!(1:20, lambda_vec[1:20], label=L"λ_n, v_0 = 0", marker = :circle)
 display(plot!(1:20, lambda_barrier[1:20], label=L"λ_n, v_0 = 10^3", marker = :circle))
@@ -265,9 +264,8 @@ display(plot(2:N-1, (lambda_barrier[2:end].-lambda_barrier[1:end-1])./lambda_bar
 plotting=[2,3,8]
 labels=["Numerical "*L"ψ_1" "Numerical "*L"ψ_2" "Numerical "*L"ψ_7"]
 display(plot(x_vec, psi_barrier[:,plotting], xlabel=L"x", ylabel=L"ψ(x)", label=labels, title="Selection of eigenfunctions with "*L"v_0 = 10^3"))
-# println(lambda_barrier)
-#### NOTE ####
-# The eigenvalues grow up in couples 
+
+# Time evolution from superposition
 psi_0 = initialize_from_superposition(psi_barrier)
 display(plot(x_vec, psi_0, title="Initial condition"))
 println("Norm of Ψ_0 as (ψ_1 + ψ_2) / √2: ", L2_integral(psi_0, dx))
@@ -277,8 +275,7 @@ evoluted_Psi = time_evolution(alpha_n, psi_barrier, lambda_barrier, 1, N)
 println("Norm of Ψ(t)", L2_integral(evoluted_Psi, dx))
 
 t_bar=π/(lambda_barrier[2]-lambda_barrier[1])
-println(t_bar)
-
+println("τ for evolution of superposition initial condition: ", t_bar)
 if false
 anim = @animate for k in 1:200
     evoluted_Psi = time_evolution(alpha_n, psi_barrier, lambda_barrier, t_bar*k/100, N) #t_bar*(1-0.01*(k-50))
@@ -287,7 +284,6 @@ anim = @animate for k in 1:200
 end
 display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier.gif", fps=60))
 end
-### It starts on one side and it end up on the other
 
 #### Root finding ###
 root_f = [root_function(λ_i, v0) for λ_i in 1:v0]
@@ -303,28 +299,27 @@ x = [λ_i/10 for λ_i in 1:10*v0]
 plot(x, root_f, xlim=(0,25), xticks = 0:1:25, xlabel=L"λ", label=L"f(λ), v_0 = 24", title="Root function around "*L"v_0 = 22")
 v0 = 23
 root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
-println(root_f[end])
 x = [λ_i/10 for λ_i in 1:10*v0]
 plot!(x, root_f, xlim=(0,25), label=L"f(λ), v_0 = 23")
 v0 = 22
 root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
 x = [λ_i/10 for λ_i in 1:10*v0]
 display(plot!( x, root_f, xlim=(0,25), label=L"f(λ), v_0 = 22"))
+
 v0 = 1e3
 
 # Here the root_finding algorithm, if I had one
-#2/3 x cos(x/3) (6 sin(x/3) + x cos(x/3)) = 0
- 
-#Task 3.6 if we lower v0, we get less states with λ < v0. When cos = 0 we get a sinh which is always positive
 
 
 ### Step by step evolution ###
 println("Euler method")
-for i in 1:100
+#Without animation
+for i in 1:10
     psi_0 = initialize_from_psi1(psi_barrier)
-    global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.00001*i)
-    println("At time : ",0.00001*i, " squared norm is : ", L2_integral(psi_0, dx))
+    global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.0001*i)
+    println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
 end
+#Animation
 if false
     anim = @animate for i in 1:100
         psi_0 = initialize_from_psi1(psi_barrier)
@@ -336,7 +331,6 @@ if false
 end
 
 
-#NOTE L2 norm is increasing
 N=100
 dx = 1/N
 x_vec = dx*[i for i in 0:N]
@@ -344,20 +338,23 @@ V_n = potential_barrier(v0, N, dx)
 
 
 println("Crank nicolson method")
+# Wihtout animation
 for i in 1:10
     psi_0 = initialize_from_delta(N, dx)
     global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
     println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
 end
+#Animation from delta
 if false
     anim = @animate for i in 1:100
         psi_0 = initialize_from_delta(N, dx)
         global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
         module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
-        plot(x_vec, real.(module_Psi), ylim=(-0.05,105),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.5f L2 norm: %.2f " 0.1*i L2_integral(psi_0, dx))
+        plot(x_vec, real.(module_Psi), ylim=(-0.05,105),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.5f L2 norm: %.2f " 0.0001*i L2_integral(psi_0, dx))
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_CN_delta.gif", fps=60))
 end
+# Animation from ψ_1
 if false
     anim = @animate for i in 1:100
         psi_0 = initialize_from_psi1(psi_barrier)
@@ -367,10 +364,6 @@ if false
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_CN.gif", fps=60))
 end
-# If I push it to large times it won't change.
-# Not even when changing psi_0 to superposition.
-# Not even when making Psi_0 Im
-# Not even with the delta
 
 N=100
 dx = 1/N
@@ -425,7 +418,7 @@ function solve_volterra(ψ_0, max_k, dt, ε0)
     return f_list
 end
 
-
+# Double barrier at different v_1
 λ1_list = []
 λ2_list = []
 v_list = []
@@ -445,7 +438,7 @@ for v1 in -500:500
         display(plot(x_vec, psi_double[:,plotting], xlabel=L"x", ylabel=L"ψ(x)", label=labels, title="First eigenfunctions at "*L"v_1 = 500"))
     elseif v1 == 0
         global ε0 = lambda_double[2]-lambda_double[1]
-        println("ΔE at V1=0 : ", ε0)
+        println("ΔE at V_1 = 0 : ", ε0)
     end
 end
 
@@ -454,12 +447,13 @@ display(plot!(v_list, λ2_list, label=L"λ_1"))
 
 display(plot(v_list, λ2_list .- λ1_list, xlabel=L"v_1", label=L"λ_1-λ_0", title="Eigenvalues difference depending on "*L"v_1"))
 
-# Finding τ
+# Checks for tau when v1=0 
 V_n = double_potential_barrier(v0, 0.0, N, dx)
 lambda_ref, psi_ref = solution_FDM_box(V_n, N-1, dx)
 display(plot(x_vec, psi_ref[:,2:3]))
 println("τ with v1 = 0 : ", evaluate_τ(V_n, psi_ref, N-1, dx))
 
+# Tau varying v1
 τ_list = []
 v_list = []
 for v1 in -500:500
@@ -467,29 +461,31 @@ for v1 in -500:500
     push!(τ_list, evaluate_τ(V_n, psi_ref, N-1, dx))
     push!(v_list,  v1)
 end
-println(τ_list ./ v_list)
+# Finding m in τ = m*v1
+# println(τ_list ./ v_list)
 
 display(plot(v_list, τ_list, xlabel=L"v_1", label=L"τ(v_1)", title=L"τ "*" as a function of "*L" v_1"))
 
+# Probability around T1
 dt = 5
 max_k = 1200
 ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0)
 t_vec = [dt*i for i in 0:max_k]
-display(ψ_n)
+# display(ψ_n)
 prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
 prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
 plot(t_vec, prob_exact , label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_1" )
 display(plot!(t_vec, prob , label="Numerical "*L"p(t)"))
 
-
+# Probability around T2
 dt = 500
 max_k = 500
 ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0)
 t_vec = [dt*i for i in 0:max_k]
-display(ψ_n)
+# display(ψ_n)
 prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
 prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
 plot(t_vec, prob_exact, label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_2")
-# plot!([142727],[0.0], marker = :circle)
+# plot!([14300],[0.0], marker = :circle)
 display(plot!(t_vec, prob ,label="Numerical "*L"p(t)"))
 

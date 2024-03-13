@@ -314,18 +314,19 @@ v0 = 1e3
 ### Step by step evolution ###
 println("Euler method")
 #Without animation
+psi_0 = initialize_from_psi1(psi_barrier)
 for i in 1:10
-    psi_0 = initialize_from_psi1(psi_barrier)
-    global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.0001*i)
-    println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
+    global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.00003)
+    println("At time : ",0.00003*i, " squared norm is : ", L2_integral(psi_0, dx))
 end
 #Animation
 if false
+    psi_0 = initialize_from_psi1(psi_barrier)
     anim = @animate for i in 1:100
-        psi_0 = initialize_from_psi1(psi_barrier)
-        global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.0001*i)
+        # psi_0 = initialize_from_psi1(psi_barrier)
+        global psi_0 = t_evolution_euler(psi_0, N-1, dx, V_n, 0.00003)
         module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
-        plot(x_vec, real.(module_Psi), ylim=(-0.05,5), label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.4f L2 norm: %.2f " 0.0001*i L2_integral(psi_0, dx))
+        plot(x_vec, real.(module_Psi), ylim=(-0.05,5), label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.5f L2 norm: %.2f " 0.00003*i L2_integral(psi_0, dx))
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_FE.gif", fps=60))
 end
@@ -338,29 +339,31 @@ V_n = potential_barrier(v0, N, dx)
 
 
 println("Crank nicolson method")
+psi_0 = initialize_from_delta(N, dx)
 # Wihtout animation
 for i in 1:10
-    psi_0 = initialize_from_delta(N, dx)
-    global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
+    global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001)
     println("At time : ",0.0001*i, " squared norm is : ", L2_integral(psi_0, dx))
 end
 #Animation from delta
 if false
-    anim = @animate for i in 1:100
-        psi_0 = initialize_from_delta(N, dx)
-        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
+    psi_0 = initialize_from_delta(N, dx)
+    anim = @animate for i in 1:500
+        # psi_0 = initialize_from_delta(N, dx)
+        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.00001)
         module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
-        plot(x_vec, real.(module_Psi), ylim=(-0.05,105),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.5f L2 norm: %.2f " 0.0001*i L2_integral(psi_0, dx))
+        plot(x_vec, real.(module_Psi), ylim=(-0.05,15),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.4f L2 norm: %.2f " 0.00001*i L2_integral(psi_0, dx))
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_CN_delta.gif", fps=60))
 end
 # Animation from ψ_1
 if false
-    anim = @animate for i in 1:100
-        psi_0 = initialize_from_psi1(psi_barrier)
-        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.0001*i)
+    psi_0 = initialize_from_psi1(psi_barrier)
+    anim = @animate for i in 1:1000
+        # psi_0 = initialize_from_psi1(psi_barrier)
+        global psi_0 = t_evolution_CN(psi_0, N-1, dx, V_n, 0.001)
         module_Psi = [conj(psi_i)*psi_i for psi_i in psi_0]
-        plot(x_vec, real.(module_Psi), ylim=(-0.05,5),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.4f L2 norm: %.2f " 0.0001*i L2_integral(psi_0, dx))
+        plot(x_vec, real.(module_Psi), ylim=(-0.05,5),label=L"|Ψ|^2", xlabel=L"x", ylabel=L"|Ψ|^2(x)", title=@sprintf "Squared module, t= %.3f L2 norm: %.2f " 0.001*i L2_integral(psi_0, dx))
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution_barrier_CN.gif", fps=60))
 end
@@ -489,3 +492,13 @@ plot(t_vec, prob_exact, label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\righ
 # plot!([14300],[0.0], marker = :circle)
 display(plot!(t_vec, prob ,label="Numerical "*L"p(t)"))
 
+# Frequency out of resonance
+dt = 5
+max_k = 1200
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, )
+t_vec = [dt*i for i in 0:max_k]
+# display(ψ_n)
+prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
+prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
+plot(t_vec, prob_exact , label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_1" )
+display(plot!(t_vec, prob , label="Numerical "*L"p(t)"))

@@ -3,6 +3,8 @@ using Plots
 using SpecialFunctions
 using LaTeXStrings
 using Printf
+import Pkg; Pkg.add("Optim")
+using Optim
 
 #####################
 # PARTICLE IN A BOX #
@@ -208,10 +210,10 @@ function initialize_from_superposition(psi_barrier)
     return psi_0
 end
 
-function root_function(λ, v0)
-    if λ > v0
-        throw("Root function is defined for 0 < λ , v0")
-    end
+function root_function(λ)
+    # if λ > v0
+    #     throw("Root function is defined for 0 < λ , v0")
+    # end
     k = sqrt(λ)
     κ = sqrt(v0 - λ)
     A = κ*sin(k/3)+k*cos(k/3)
@@ -244,13 +246,54 @@ function t_evolution_CN(psi_0, N, dx, V_n, dt)
     psi_0_evol[2:end-1] = H*psi_0[2:end-1]
     return psi_0_evol
 end
-    
+
+function find_nearest_minimum(f, λ_i)
+    result = optimize(x -> f(x[1]), [λ_i], NelderMead(; parameters = Optim.FixedParameters(),
+    initial_simplex = Optim.AffineSimplexer()), Optim.Options(f_tol = 1e-6, g_tol = 1e-10))
+    min_point = Optim.minimizer(result)
+    # println(Optim.converged(result), Optim.iterations(result))
+    return min_point[1]
+end
+
+function find_root_from_min(f, min_λ, α)
+    x_minus = min_λ
+    x_plus = α* min_λ
+    if x_plus < 0
+        return find_root_from_min(f, min_λ, α)
+    end
+    tol = 1e-6
+    while abs(x_plus - x_minus) / 2 > tol
+        x_mean = (x_plus + x_minus) / 2
+        if abs(f(x_mean)) < tol
+            return x_mean
+        elseif f(x_mean) > 0
+            x_plus = x_mean
+        else
+            x_minus = x_mean
+        end
+    end
+    return (x_plus + x_minus) / 2
+end
+
+function find_roots(lambda_barrier, v0)
+    λ_list = [lambda_barrier[i] for i in 1:2:length(lambda_barrier)-1 if lambda_barrier[i] < v0]
+    min_list = [find_nearest_minimum(root_function, λ_i) for λ_i in λ_list]
+    roots = []
+    for i in eachindex(λ_list)
+        push!(roots, find_root_from_min(root_function, min_list[i], 0.99))
+        push!(roots, find_root_from_min(root_function, min_list[i], 1.01))
+    end
+    return roots
+end
+
 
 # Checking with v_0 = 0
 V_n = zeros(N-1)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
 
 # Now v_0 = 1000
+N = 100
+dx = 1/N
 v0 = 1e3
 V_n = potential_barrier(v0, N, dx)
 lambda_barrier, psi_barrier = solution_FDM_box(V_n, N-1, dx)
@@ -286,29 +329,30 @@ display(gif(anim, "/home/frossi/ComputationalPhysics/Assignment_2/Time_evolution
 end
 
 #### Root finding ###
-root_f = [root_function(λ_i, v0) for λ_i in 1:v0]
+root_f = [root_function(λ_i) for λ_i in 1:v0]
 display(plot( 1:v0, root_f, xlabel=L"λ", label=L"f(λ)", title="Root function at "*L"v_0 = 10^3"))
 
 v0=1e5
-root_f = [root_function(λ_i, v0) for λ_i in 1:v0]
+root_f = [root_function(λ_i) for λ_i in 1:v0]
 display(plot( 1:v0, root_f, xlim=(0,2.5e4), xlabel=L"λ", label=L"f(λ), v_0 = 10^5", title="Root function at "*L"v_0 = 10^5"))
 
 v0 = 24
-root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
+root_f = [root_function(λ_i/10) for λ_i in 1:10*v0]
 x = [λ_i/10 for λ_i in 1:10*v0]
 plot(x, root_f, xlim=(0,25), xticks = 0:1:25, xlabel=L"λ", label=L"f(λ), v_0 = 24", title="Root function around "*L"v_0 = 22")
 v0 = 23
-root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
+root_f = [root_function(λ_i/10) for λ_i in 1:10*v0]
 x = [λ_i/10 for λ_i in 1:10*v0]
 plot!(x, root_f, xlim=(0,25), label=L"f(λ), v_0 = 23")
 v0 = 22
-root_f = [root_function(λ_i/10, v0) for λ_i in 1:10*v0]
+root_f = [root_function(λ_i/10) for λ_i in 1:10*v0]
 x = [λ_i/10 for λ_i in 1:10*v0]
 display(plot!( x, root_f, xlim=(0,25), label=L"f(λ), v_0 = 22"))
 
 v0 = 1e3
 
-# Here the root_finding algorithm, if I had one
+# Here the root_finding algorithm
+println("Numerical roots: ", find_roots(lambda_barrier, v0))
 
 
 ### Step by step evolution ###

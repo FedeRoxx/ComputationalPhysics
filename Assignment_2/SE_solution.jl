@@ -398,18 +398,18 @@ function evaluate_τ(V_n, ψ, N, dx)
     return integrate_product(ψ[:,2], ψ_test, N, dx)
 end
 
-function build_N(ε0, t)
+function build_N(ε0, t, ω, α_τ)
     Nk = zeros(2,2)im
     Nk[1,2] = exp(-1im*t*ε0)
     Nk[2,1] = exp(1im*t*ε0)
-    return Nk * 0.02*ε0*sin(ε0*t)
+    return Nk * α_τ *ε0*sin(ω*t)
 end
 
-function solve_volterra(ψ_0, max_k, dt, ε0)
+function solve_volterra(ψ_0, max_k, dt, ε0, ω, α_τ)
     f_list = [ψ_0]
     N_list = []
     for k in 1:max_k
-        Nk = -1im*dt*build_N(ε0, k*dt)
+        Nk = -1im*dt*build_N(ε0, k*dt, ω, α_τ)
         Mk = inv(diagm(ones(2))-0.5*Nk)
         f0 = copy(ψ_0)
         for l in eachindex(N_list)
@@ -472,7 +472,7 @@ display(plot(v_list, τ_list, xlabel=L"v_1", label=L"τ(v_1)", title=L"τ "*" as
 # Probability around T1
 dt = 5
 max_k = 1200
-ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0)
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, ε0, 0.02)
 t_vec = [dt*i for i in 0:max_k]
 # display(ψ_n)
 prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
@@ -483,7 +483,7 @@ display(plot!(t_vec, prob , label="Numerical "*L"p(t)"))
 # Probability around T2
 dt = 500
 max_k = 500
-ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0)
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, ε0, 0.02)
 t_vec = [dt*i for i in 0:max_k]
 # display(ψ_n)
 prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
@@ -495,10 +495,48 @@ display(plot!(t_vec, prob ,label="Numerical "*L"p(t)"))
 # Frequency out of resonance
 dt = 5
 max_k = 1200
-ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, )
+ω = ε0 *0.95
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, ω, 0.02)
 t_vec = [dt*i for i in 0:max_k]
 # display(ψ_n)
 prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
 prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
-plot(t_vec, prob_exact , label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_1" )
+plot(t_vec, prob_exact , label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_1 \quad (ω=0.95 λ_0)" )
 display(plot!(t_vec, prob , label="Numerical "*L"p(t)"))
+
+dt = 500
+max_k = 500
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, ω, 0.02)
+t_vec = [dt*i for i in 0:max_k]
+# display(ψ_n)
+prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
+prob_exact = [sin(0.02*ε0*i*dt/2)^2 for i in 0:max_k]
+plot(t_vec, prob_exact, label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_2 \quad (ω=0.95 λ_0)")
+# plot!([14300],[0.0], marker = :circle)
+display(plot!(t_vec, prob ,label="Numerical "*L"p(t)"))
+
+
+
+
+# Resonance but large τ
+α_τ = 0.75
+dt = 5
+max_k = 2500
+ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, ε0, α_τ)
+t_vec = [dt*i for i in 0:max_k]
+# display(ψ_n)
+prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
+prob_exact = [sin(α_τ*ε0*i*dt/2)^2 for i in 0:max_k]
+plot(t_vec, prob_exact , label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t)   "*L"\quad(τ=0.8 λ_0)" )
+display(plot!(t_vec, prob , label="Numerical "*L"p(t)"))
+
+# dt = 5
+# max_k = 5000
+# ψ_n = solve_volterra([1.0+0.0im,0.0im], max_k, dt, ε0, ε0, α_τ)
+# t_vec = [dt*i for i in 0:max_k]
+# # display(ψ_n)
+# prob = [abs(ψ_n[k][2])^2 for k in 1:max_k+1]
+# prob_exact = [sin(α_τ*ε0*i*dt/2)^2 for i in 0:max_k]
+# plot(t_vec, prob_exact, label=L"p(t) = "*"sin"*L"^2  \left( \frac{t\tau}{2}\right)", xlabel=L"t", ylabel=L"p(t)", title=L"p(t) "*" for "*L"t "*" ~ "*L" T_2 \quad (τ=0.8 λ_0)")
+# # plot!([14300],[0.0], marker = :circle)
+# display(plot!(t_vec, prob ,label="Numerical "*L"p(t)"))

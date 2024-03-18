@@ -3,7 +3,6 @@ using Plots
 using SpecialFunctions
 using LaTeXStrings
 using Printf
-import Pkg; Pkg.add("Optim")
 using Optim
 
 #####################

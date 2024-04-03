@@ -197,7 +197,7 @@ function CoM(protein)
 end
 
 function RoG(protein)
-    # Calculate Ratio of Gyration for a given protein
+    # Calculate Radius of Gyration for a given protein
     com = CoM(protein)
     temp_sum = sum([norm(monomer[2] - com)^2 for monomer in protein])
     return sqrt(temp_sum/length(protein))
@@ -222,6 +222,11 @@ function load_protein(filename)
     return deserialize(filename)
 end
 
+function linear_protein(n)
+    protein = [[rand(1:20), [i, 0]] for i in 0:n-1]
+    return protein
+end
+
 function display_logger(logger)
     # Plots energy, e2e and RoG as a function of the sweeps index.
     energies = [point[1] for point in logger]
@@ -230,15 +235,28 @@ function display_logger(logger)
 
     display(plot(1:length(logger), energies, label="Energy", xlabel="Sweeps", title="Energy during the simulation"))
     display(plot(1:length(logger), e2e, label="End-to-end", xlabel="Sweeps", title="End-to-end during the simulation"))
-    display(plot(1:length(logger), RoG, label="RoG", xlabel="Sweeps", title="Ratio of gyration during the simulation"))
+    display(plot(1:length(logger), RoG, label="RoG", xlabel="Sweeps", title="Radius of gyration during the simulation"))
     return nothing
+end
+
+function MC_simulation_averaged(protein, J_mat, T, n_sweeps, n_average)
+    # Run a simulations of n_sweeps from a starting protein.
+    # Then returns energy, e2e and RoG averaged for more n_average sweeps.
+    for _ in 1:n_sweeps
+        protein = MC_sweep(protein, J_mat, T)
+    end
+    means = [0.0,0.0,0.0]
+    for _ in 1:n_average
+        protein = MC_sweep(protein, J_mat, T)
+        means += get_info(protein, J_mat)
+    end
+    return means / n_average
 end
 
 
 
 J_mat = get_J_mat("/home/frossi/ComputationalPhysics/Assignment_3/J_mat_serialized")
 display(J_mat)
-
 
 
 n = 15
@@ -254,7 +272,14 @@ else
     plot_2d_protein(protein)
 end
 
-@show logger = MC_simulation(protein, J_mat, 10, 20)
-display_logger(logger)
+# protein = linear_protein(n)
+protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_protein_serialized" )
+
+plot_2d_protein(protein)
+# @show logger = MC_simulation(protein, J_mat, 10, 100)
+# display_logger(logger)
+
+@show MC_simulation_averaged(protein, J_mat, 10, 10, 1000)
+
 
 # display(plot_2d_protein(protein))

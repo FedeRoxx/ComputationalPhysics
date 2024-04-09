@@ -48,13 +48,13 @@ function build_2d_protein(n)
     return protein
 end
 
-function plot_2d_protein(protein)
+function plot_2d_protein(protein, title)
     # Plots a 2d graph with monomers indicated by their type and connected with blue lines
     x_coords = [point[2][1] for point in protein]
     y_coords = [point[2][2] for point in protein]
     labels = [point[1] for point in protein]
 
-    scatter(x_coords, y_coords, xlims=(-10,10), ylims=(-10,10), label = "")
+    scatter(x_coords, y_coords, xlims=(-5,20), ylims=(-10,10), label = "")
     # for i in 1:length(protein)
     #     annotate!(x_coords[i], y_coords[i], text(labels[i], 15, :black))
     # end
@@ -63,7 +63,7 @@ function plot_2d_protein(protein)
     end
     xlabel!("X")
     ylabel!("Y")
-    title!("2D representation of protein")
+    title!(title)
 
     display(plot!())
 end
@@ -179,9 +179,11 @@ function MC_simulation(protein, J_mat, T, n_sweeps)
     # Run a simulations of n_sweeps from a starting protein.
     # Keeps a logger to get the energy, e2e and RoG.
     logger = []
-    for _ in 1:n_sweeps
+    for k in 1:n_sweeps
         protein = MC_sweep(protein, J_mat, T)
-        plot_2d_protein(protein)
+        if k in [1,10,100]
+            plot_2d_protein(protein, "2D representation of protein after $k sweeps")
+        end
         push!(logger, get_info(protein, J_mat))
     end
     return logger
@@ -206,7 +208,7 @@ end
 function get_info(protein, J_mat)
     # For a gived protein, evaluates energy, e2e and RoG and give them back.
     info = [evaluate_energy(protein, J_mat)]
-    push!(info, norm(protein[end][2]))
+    push!(info, norm(protein[end][2]-protein[1][2]))
     push!(info, RoG(protein))
     return info
 end
@@ -233,27 +235,71 @@ function display_logger(logger)
     e2e = [point[2] for point in logger]
     RoG = [point[3] for point in logger]
 
-    display(plot(1:length(logger), energies, label="Energy", xlabel="Sweeps", title="Energy during the simulation"))
-    display(plot(1:length(logger), e2e, label="End-to-end", xlabel="Sweeps", title="End-to-end during the simulation"))
-    display(plot(1:length(logger), RoG, label="RoG", xlabel="Sweeps", title="Radius of gyration during the simulation"))
+    display(plot(1:length(logger), energies, label="Energy", xlabel="Sweeps", linewidth=1, title="Energy during the simulation"))
+    display(plot(1:length(logger), e2e, label="End-to-end", xlabel="Sweeps", linewidth=1, title="End-to-end during the simulation"))
+    display(plot(1:length(logger), RoG, label="RoG", xlabel="Sweeps", linewidth=1, title="Radius of gyration during the simulation"))
     return nothing
 end
 
 function MC_simulation_averaged(protein, J_mat, T, n_sweeps, n_average)
     # Run a simulations of n_sweeps from a starting protein.
     # Then returns energy, e2e and RoG averaged for more n_average sweeps.
+    logger = []
     for _ in 1:n_sweeps
         protein = MC_sweep(protein, J_mat, T)
+        push!(logger, get_info(protein, J_mat))
     end
     means = [0.0,0.0,0.0]
-    for _ in 1:n_average
+    for k in 1:n_average
         protein = MC_sweep(protein, J_mat, T)
         means += get_info(protein, J_mat)
+        push!(logger, means/k)
+        # means += get_info(protein, J_mat)
     end
-    return means / n_average
+    plot_2d_protein(protein, "2D representation of protein")
+    display_logger(logger)
+    return means / n_average, protein
 end
 
 
+function MC_simulation_Tlist(protein, J_mat, T_list, n_sweeps)
+    # Run a simulations of n_sweeps from a starting protein, changing to the next T in T_list after.
+    # Keeps a logger to get the energy, e2e and RoG.
+    logger = []
+    for temp in T_list
+        for _ in 1:n_sweeps
+            protein = MC_sweep(protein, J_mat, temp)
+            push!(logger, get_info(protein, J_mat))
+        end
+    end
+    return logger
+end
+
+function MC_simulation_Tlist_averaged(protein, J_mat, T_list, n_sweeps, n_average)
+    # Run a simulations of n_sweeps from a starting protein, changing to the next T in T_list after.
+    # Keeps a logger to get the energy, e2e and RoG.
+    logger = []
+    for temp in T_list
+        mean, protein = MC_simulation_averaged(protein, J_mat, temp, n_sweeps, n_average)
+        push!(logger, mean)
+    end
+    return logger
+end
+
+function display_logger_Tlist(logger, T_list)
+    # Plots energy, e2e and RoG as a function of the sweeps index.
+    energies = [point[1] for point in logger]
+    e2e = [point[2] for point in logger]
+    RoG = [point[3] for point in logger]
+
+    # display(plot(T_list, energies, label="Energy", xlabel="Temperature", linewidth=1, title="Energy at different temperatures"))
+    # display(plot(T_list, e2e, label="End-to-end", xlabel="Temperature", linewidth=1, title="End-to-end at different temperatures"))
+    # display(plot(T_list, RoG, label="RoG", xlabel="Temperature", linewidth=1, title="Radius of gyration at different temperatures"))
+    savefig(plot(T_list, energies, label="Energy", xlabel="Temperature", linewidth=1, title="Energy at different temperatures"), "/home/frossi/ComputationalPhysics/Assignment_3/energy.png")
+    savefig(plot(T_list, e2e, label="End-to-end", xlabel="Temperature", linewidth=1, title="End-to-end at different temperatures"), "/home/frossi/ComputationalPhysics/Assignment_3/e2e.png")
+    savefig(plot(T_list, RoG, label="RoG", xlabel="Temperature", linewidth=1, title="Radius of gyration at different temperatures"), "/home/frossi/ComputationalPhysics/Assignment_3/rog.png")
+    return nothing
+end
 
 J_mat = get_J_mat("/home/frossi/ComputationalPhysics/Assignment_3/J_mat_serialized")
 display(J_mat)
@@ -263,23 +309,53 @@ n = 15
 
 if false
     protein = build_2d_protein(n)
-    plot_2d_protein(protein)
+    plot_2d_protein(protein, "2D representation of protein")
     @show NN_list = generate_nearest_neighbour(protein)
     @show energy = evaluate_energy(protein, J_mat)
     save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized" )
 else
     protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized")
-    plot_2d_protein(protein)
+    # plot_2d_protein(protein, "2D representation of protein")
 end
 
-# protein = linear_protein(n)
-protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_protein_serialized" )
+### Generate and save a new linear protein of fixed length
+# protein = linear_protein(30)
+# save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/30_linear_protein_serialized" )
 
-plot_2d_protein(protein)
+
+# 100 sweeps 
+# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_protein_serialized" )
+# plot_2d_protein(protein, "2D representation of protein")
 # @show logger = MC_simulation(protein, J_mat, 10, 100)
 # display_logger(logger)
 
-@show MC_simulation_averaged(protein, J_mat, 10, 10, 1000)
+### Averaging after 100 sweeps, for 1000 sweeps Task 5
+# @show mean, protein = MC_simulation_averaged(protein, J_mat, 10, 100, 1000)
+
+### Temperature of 1 Task 6 (part 1)
+# plot_2d_protein(protein, "Initial geometry of protein")
+# logger = MC_simulation(protein, J_mat, 1, 100)
+# display_logger(logger)
+
+### N = 100 Task 6 (part 2)
+# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/100_linear_protein_serialized" )
+# plot_2d_protein(protein, "Initial geometry of protein")
+# logger, protein = MC_simulation_averaged(protein, J_mat, 10, 100, 1000)
+# display_logger(logger)
+
+### Decrease temperature
+# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_protein_serialized" )
+# T_list = [20, 10, 5, 3, 2, 1]
+# plot_2d_protein(protein, "Initial geometry of protein")
+# logger = MC_simulation_Tlist(protein, J_mat, T_list, 1000)
+# display_logger(logger)
 
 
-# display(plot_2d_protein(protein))
+### Decrease temperature and take average
+protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/50_linear_protein_serialized" )
+T_list = [20, 15, 10, 8, 6, 5, 3, 2, 1]
+plot_2d_protein(protein, "Initial geometry of protein")
+logger = MC_simulation_Tlist_averaged(protein, J_mat, T_list, 100, 3000)
+display_logger_Tlist(logger, T_list)
+
+display(plot_2d_protein(protein, "2D representation of protein"))

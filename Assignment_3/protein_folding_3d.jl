@@ -58,16 +58,30 @@ function plot_3d_protein(protein, title)
     labels = [point[1] for point in protein]
 
     # scatter(x_coords, y_coords, xlims=(-5,20), ylims=(-10,10), label = "")
-    scatter(x_coords, y_coords, aspect_ratio=:equal, label = "")
+    scatter(x_coords, y_coords, z_coords, aspect_ratio=1.0, size=(600,600), label = "")
 
     # for i in 1:length(protein)
-    #     annotate!(x_coords[i], y_coords[i], text(labels[i], 15, :black))
+    #     annotate!(x_coords[i], y_coords[i], z_coords[i], text(labels[i], 15, :black))
     # end
     for i in 1:length(protein) - 1
-        plot!([x_coords[i], x_coords[i+1]], [y_coords[i], y_coords[i+1]], color=:blue, linewidth=2, label="")
+        plot!([x_coords[i], x_coords[i+1]], [y_coords[i], y_coords[i+1]], [z_coords[i], z_coords[i+1]], color=:blue, linewidth=2, label="")
     end
     xlabel!("X")
     ylabel!("Y")
+    zlabel!("Z")
+
+    function mean(coords)
+        return sum(coords) / length(coords)
+    end
+
+    d = maximum([maximum(coords) - minimum(coords) for coords in [x_coords, y_coords, z_coords]]) / 2
+    xm, ym, zm = mean(x_coords),  mean(y_coords),  mean(z_coords)
+    # min_v = minimum([x_coords; y_coords; z_coords])
+    # max_v = maximum([x_coords; y_coords; z_coords])
+    xlims!((xm-d-1, xm+d+1))
+    ylims!((ym-d-1, ym+d+1))
+    zlims!((zm-d-1, zm+d+1))
+    
     title!(title)
 
     display(plot!())
@@ -120,7 +134,7 @@ function find_move(index, protein)
     # Returns true, new_coord (=the new suggested coordinates for the monomer)
     # If none are available returns false, [0,0]
     coords = [monomer[2] for monomer in protein]
-    shuffled_list = shuffle([1,2,3,4])
+    shuffled_list = shuffle([1,2,3,4,5,6])
     if index == 1
         for i in shuffled_list
             new_coord = coords[index+1] + dict_direction[i]
@@ -141,7 +155,7 @@ function find_move(index, protein)
             return true, new_coord
         end
     end
-    return false, [0,0]
+    return false, [0,0,0]
 end
 
 function MC_step(protein, J_mat, T)
@@ -187,7 +201,7 @@ function MC_simulation(protein, J_mat, T, n_sweeps)
     for k in 1:n_sweeps
         protein = MC_sweep(protein, J_mat, T)
         if k in [1,10,100]
-            plot_2d_protein(protein, "2D representation of protein after $k sweeps")
+            plot_3d_protein(protein, "3D representation of protein after $k sweeps")
         end
         push!(logger, get_info(protein, J_mat))
     end
@@ -196,7 +210,7 @@ end
 
 function CoM(protein)
     # Evaluates the Center of mass of a protein, assuming m=1 for each monomer.
-    coord = [0,0]
+    coord = [0,0,0]
     for monomer in protein
         coord += monomer[2]
     end
@@ -229,8 +243,8 @@ function load_protein(filename)
     return deserialize(filename)
 end
 
-function linear_protein(n)
-    protein = [[rand(1:20), [i, 0]] for i in 0:n-1]
+function linear_protein_3d(n)
+    protein = [[rand(1:20), [i, 0, 0]] for i in 0:n-1]
     return protein
 end
 
@@ -246,16 +260,19 @@ function display_logger(logger)
     return nothing
 end
 
+
+# OK UP TO HERE
+
 function MC_simulation_averaged(protein, J_mat, T, n_sweeps, n_average)
     # Run a simulations of n_sweeps from a starting protein.
     # Then returns energy, e2e and RoG averaged for more n_average sweeps.
-    logger = [[0.0,0.0,0.0]]
-    plot_2d_protein(protein, "Before starting")
+    logger = []
+    plot_3d_protein(protein, "Before starting")
     for k in 1:n_sweeps
         protein = MC_sweep(protein, J_mat, T)
         push!(logger, get_info(protein, J_mat))
         if k % 200 == 0
-            plot_2d_protein(protein, "2D protein at "*L"T=1")
+            plot_3d_protein(protein, "2D protein at "*L"T=1")
         end
     end
     means = [0.0,0.0,0.0]
@@ -265,7 +282,7 @@ function MC_simulation_averaged(protein, J_mat, T, n_sweeps, n_average)
         push!(logger, means/k)
         # means += get_info(protein, J_mat)
     end
-    plot_2d_protein(protein, "2D representation of protein")
+    plot_3d_protein(protein, "2D representation of protein")
     display_logger(logger)
     return means / n_average, protein
 end
@@ -319,7 +336,7 @@ function MC_simulation_SA(protein, J_mat, T1, T2, n_sweeps)
         protein = MC_sweep(protein, J_mat, temp)
         push!(logger, get_info(protein, J_mat))
     end
-    plot_2d_protein(protein, "2D representation of protein")
+    plot_3d_protein(protein, "2D representation of protein")
     return logger
 end
 
@@ -331,16 +348,44 @@ display(J_mat)
 
 n = 15
 
-if false
-    protein = build_2d_protein(n)
-    plot_2d_protein(protein, "2D representation of protein")
-    @show NN_list = generate_nearest_neighbour(protein)
-    @show energy = evaluate_energy(protein, J_mat)
-    save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized" )
-else
-    protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized")
-    # plot_2d_protein(protein, "2D representation of protein")
-end
+## Generating a random protein, to check plotting and neighbours
+# protein = build_3d_protein(n)
+# println(protein)
+# plot_3d_protein(protein, "3D representation of protein")
+# evaluate_energy(protein, J_mat)
+
+## Generating a random linear protein to save
+# protein = linear_protein_3d(n)
+# save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/15_linear_3d_protein_serialized" )
+
+## Start from linear protein, save 1, 10 ,100 sweeps [Task 2]
+# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_3d_protein_serialized")
+# plot_3d_protein(protein, "3D representation of protein")
+# evaluate_energy(protein, J_mat)
+# logger = MC_simulation(protein, J_mat, 10, 100)
+# display_logger(logger)
+
+### Decrease temperature and take average [Task 7 b]
+protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_3d_protein_serialized" )
+T_list = [20, 15, 10, 8, 6, 5, 3, 2, 1]
+plot_3d_protein(protein, "Initial geometry of protein")
+logger = MC_simulation_Tlist_averaged(protein, J_mat, T_list, 100, 3000)
+display_logger_Tlist(logger, T_list)
+
+
+
+
+
+# if false
+#     protein = build_2d_protein(n)
+#     plot_2d_protein(protein, "2D representation of protein")
+#     @show NN_list = generate_nearest_neighbour(protein)
+#     @show energy = evaluate_energy(protein, J_mat)
+#     save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized" )
+# else
+#     protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized")
+#     # plot_2d_protein(protein, "2D representation of protein")
+# end
 
 ### Generate and save a new linear protein of fixed length
 # protein = linear_protein(30)
@@ -389,4 +434,4 @@ end
 # display_logger(logger)
 
 
-display(plot_2d_protein(protein, "2D representation of protein"))
+# display(plot_2d_protein(protein, "2D representation of protein"))

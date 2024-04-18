@@ -349,21 +349,21 @@ display(J_mat)
 n = 15
 
 ## Generating a random protein, to check plotting and neighbours
-# protein = build_3d_protein(n)
-# println(protein)
-# plot_3d_protein(protein, "3D representation of protein")
-# evaluate_energy(protein, J_mat)
+protein = build_3d_protein(n)
+println(protein)
+plot_3d_protein(protein, "3D representation of protein")
+evaluate_energy(protein, J_mat)
 
 ## Generating a random linear protein to save
 # protein = linear_protein_3d(n)
 # save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/15_linear_3d_protein_serialized" )
 
 ## Start from linear protein, save 1, 10 ,100 sweeps [Task 2]
-# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_3d_protein_serialized")
-# plot_3d_protein(protein, "3D representation of protein")
-# evaluate_energy(protein, J_mat)
-# logger = MC_simulation(protein, J_mat, 10, 100)
-# display_logger(logger)
+protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_3d_protein_serialized")
+plot_3d_protein(protein, "3D representation of protein")
+evaluate_energy(protein, J_mat)
+logger = MC_simulation(protein, J_mat, 10, 100)
+display_logger(logger)
 
 ### Decrease temperature and take average [Task 7 b]
 protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_3d_protein_serialized" )
@@ -371,67 +371,3 @@ T_list = [20, 15, 10, 8, 6, 5, 3, 2, 1]
 plot_3d_protein(protein, "Initial geometry of protein")
 logger = MC_simulation_Tlist_averaged(protein, J_mat, T_list, 100, 3000)
 display_logger_Tlist(logger, T_list)
-
-
-
-
-
-# if false
-#     protein = build_2d_protein(n)
-#     plot_2d_protein(protein, "2D representation of protein")
-#     @show NN_list = generate_nearest_neighbour(protein)
-#     @show energy = evaluate_energy(protein, J_mat)
-#     save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized" )
-# else
-#     protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/protein_serialized")
-#     # plot_2d_protein(protein, "2D representation of protein")
-# end
-
-### Generate and save a new linear protein of fixed length
-# protein = linear_protein(30)
-# save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/30_linear_protein_serialized" )
-
-
-# 100 sweeps 
-# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_protein_serialized" )
-# plot_2d_protein(protein, "2D representation of protein")
-# @show logger = MC_simulation(protein, J_mat, 10, 100)
-# display_logger(logger)
-
-### Averaging after 100 sweeps, for 1000 sweeps [Task 5]
-# @show mean, protein = MC_simulation_averaged(protein, J_mat, 10, 100, 1000)
-
-### Temperature of 1 [Task 6 (part 1)]
-# plot_2d_protein(protein, "Initial geometry of protein")
-# logger = MC_simulation(protein, J_mat, 1, 100)
-# display_logger(logger)
-
-### N = 100 [Task 6 (part 2)]
-# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/100_linear_protein_serialized" )
-# plot_2d_protein(protein, "Initial geometry of protein")
-# logger, protein = MC_simulation_averaged(protein, J_mat, 10, 100, 1000)
-# display_logger(logger)
-
-### Decrease temperature [Task 7 a]
-# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_protein_serialized" )
-# T_list = [20, 10, 5, 3, 2, 1]
-# plot_2d_protein(protein, "Initial geometry of protein")
-# logger = MC_simulation_Tlist(protein, J_mat, T_list, 1000)
-# display_logger(logger)
-
-
-### Decrease temperature and take average [Task 7 b]
-# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/50_linear_protein_serialized" )
-# T_list = [20, 15, 10, 8, 6, 5, 3, 2, 1]
-# plot_2d_protein(protein, "Initial geometry of protein")
-# logger = MC_simulation_Tlist_averaged(protein, J_mat, T_list, 100, 3000)
-# display_logger_Tlist(logger, T_list)
-
-### Get 2 snapshots [Task 8]
-# protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/30_linear_protein_serialized" )
-# mean, protein = MC_simulation_averaged(protein, J_mat, 1, 10000, 1)
-# logger = MC_simulation_SA(protein, J_mat, 10.0, 1.0, 10000)
-# display_logger(logger)
-
-
-# display(plot_2d_protein(protein, "2D representation of protein"))

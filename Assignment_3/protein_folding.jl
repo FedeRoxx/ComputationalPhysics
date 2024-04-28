@@ -70,6 +70,28 @@ function plot_2d_protein(protein, title)
     display(plot!())
 end
 
+function plot_2d_protein_withnumbers(protein, title)
+    # Plots a 2d graph with monomers indicated by their type and connected with blue lines
+    x_coords = [point[2][1] for point in protein]
+    y_coords = [point[2][2] for point in protein]
+    labels = [point[1] for point in protein]
+
+    # scatter(x_coords, y_coords, xlims=(-5,20), ylims=(-10,10), label = "")
+    scatter(x_coords, y_coords, aspect_ratio=:equal, label = "")
+
+    for i in 1:length(protein)
+        annotate!(x_coords[i], y_coords[i], text(labels[i], 15, :black))
+    end
+    for i in 1:length(protein) - 1
+        plot!([x_coords[i], x_coords[i+1]], [y_coords[i], y_coords[i+1]], color=:blue, linewidth=2, label="")
+    end
+    xlabel!("X")
+    ylabel!("Y")
+    title!(title)
+
+    display(plot!())
+end
+
 function get_J_mat(filename)
     # If already present, reads the J_mat saved.
     # Otherwise, builds a 20x20 symmetric matrix of random values between -2 and -4
@@ -317,6 +339,10 @@ function MC_simulation_SA(protein, J_mat, T1, T2, n_sweeps)
         push!(logger, get_info(protein, J_mat))
     end
     plot_2d_protein(protein, "2D representation of protein")
+    plot_2d_protein_withnumbers(protein, "2D representation of protein")
+    @show NN_list = generate_nearest_neighbour(protein)
+    display(protein)
+    serialize("/home/frossi/ComputationalPhysics/Assignment_3/protein_SA_rep", protein)
     return logger
 end
 
@@ -328,6 +354,7 @@ display(J_mat)
 
 n = 15
 
+# Initial testing. Will either generate a new 2d protein and save it or load an existing one
 if false
     protein = build_2d_protein(n)
     plot_2d_protein(protein, "2D representation of protein")
@@ -339,7 +366,7 @@ else
     # plot_2d_protein(protein, "2D representation of protein")
 end
 
-### Generate and save a new linear protein of fixed length
+# ## Generate and save a new linear protein of fixed length
 # protein = linear_protein(30)
 # save_protein(protein, "/home/frossi/ComputationalPhysics/Assignment_3/30_linear_protein_serialized" )
 
@@ -350,21 +377,21 @@ end
 # @show logger = MC_simulation(protein, J_mat, 10, 100)
 # display_logger(logger)
 
-### Averaging after 100 sweeps, for 1000 sweeps [Task 5]
+# ## Averaging after 100 sweeps, for 1000 sweeps [Task 5]
 # @show mean, protein = MC_simulation_averaged(protein, J_mat, 10, 100, 1000)
 
-### Temperature of 1 [Task 6 (part 1)]
+# ## Temperature of 1 [Task 6 (part 1)]
 # plot_2d_protein(protein, "Initial geometry of protein")
 # logger = MC_simulation(protein, J_mat, 1, 100)
 # display_logger(logger)
 
-### N = 100 [Task 6 (part 2)]
+# ## N = 100 [Task 6 (part 2)]
 # protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/100_linear_protein_serialized" )
 # plot_2d_protein(protein, "Initial geometry of protein")
 # logger, protein = MC_simulation_averaged(protein, J_mat, 10, 100, 1000)
 # display_logger(logger)
 
-### Decrease temperature [Task 7 a]
+# ## Decrease temperature [Task 7 a]
 # protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/15_linear_protein_serialized" )
 # T_list = [20, 10, 5, 3, 2, 1]
 # plot_2d_protein(protein, "Initial geometry of protein")
@@ -372,18 +399,36 @@ end
 # display_logger(logger)
 
 
-### Decrease temperature and take average [Task 7 b]
+# ## Decrease temperature and take average [Task 7 b]
 # protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/50_linear_protein_serialized" )
 # T_list = [20, 15, 10, 8, 6, 5, 3, 2, 1]
 # plot_2d_protein(protein, "Initial geometry of protein")
 # logger = MC_simulation_Tlist_averaged(protein, J_mat, T_list, 100, 3000)
 # display_logger_Tlist(logger, T_list)
 
-### Get 2 snapshots [Task 8]
+# ## Get 2 snapshots - SA [Task 8]
 # protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/30_linear_protein_serialized" )
 # mean, protein = MC_simulation_averaged(protein, J_mat, 1, 10000, 1)
 # logger = MC_simulation_SA(protein, J_mat, 10.0, 1.0, 10000)
 # display_logger(logger)
 
+### Create or load J_mat with repulsive terms
+if isfile("/home/frossi/ComputationalPhysics/Assignment_3/rep_J_mat")
+    rep_J_mat = deserialize("/home/frossi/ComputationalPhysics/Assignment_3/rep_J_mat")
+else
+    # Only run once to generate it
+    rep_J_mat = deepcopy(J_mat)
+    for _ in 1:40
+        i = rand(1:20)
+        j = rand(1:20)
+        rep_J_mat[i,j] *= -1
+        rep_J_mat[j,i] *= -1
+    end
+    serialize("/home/frossi/ComputationalPhysics/Assignment_3/rep_J_mat", rep_J_mat)
+end
 
-display(plot_2d_protein(protein, "2D representation of protein"))
+# SA with rep J mat [Task 9]
+display(rep_J_mat)
+protein = load_protein("/home/frossi/ComputationalPhysics/Assignment_3/50_linear_protein_serialized" )
+logger = MC_simulation_SA(protein, rep_J_mat, 10.0, 1.0, 10000)
+display_logger(logger)

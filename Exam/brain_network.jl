@@ -3,8 +3,6 @@ using Plots
 using SpecialFunctions
 using LaTeXStrings
 using Printf
-# using Optim
-# using Serialization
 using Arpack
 using Random
 using LinearSolve
@@ -154,7 +152,7 @@ if false     # PUT TRUE TO RUN
     display(plot_bars(V, ""))
 end
 
-### Trace back V[1/i] [Task 2.f]
+### Trace back V[1/i] [Task 2f]
 V = [1.0/i for i in 1:N]
 methods = ["invert", "LU", "CG", "Krylov_GMRES"]
 for met in methods
@@ -184,7 +182,3 @@ for met in methods
     end
     println("Error is : ", norm(V - V_exact))
 end
-
-
-
-

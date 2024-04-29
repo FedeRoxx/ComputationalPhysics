@@ -7,6 +7,8 @@ using Printf
 # using Serialization
 using Arpack
 using Random
+using LinearSolve
+using IterativeSolvers
 
 function build_T(N)
     # Builds the transformation matrix T
@@ -50,6 +52,22 @@ function iterative_extreme_eigvals(A, n_extremes)
     # Arpack uses Lanczos algorithm for symmetric matrices
     eigvals, _ = Arpack.eigs(A, nev=n_extremes, which=:BE)
     return eigvals
+end
+
+function solve_linear_problem(A, b, method)
+    if method=="invert"
+        return inv(A)*b
+    elseif method=="LU"
+        prob = LinearProblem(A, b)
+        sol = solve(prob, LUFactorization()) 
+        return sol.u
+    elseif method=="CG"
+        return cg(A, b)
+    elseif method=="Krylov_GMRES"
+        prob = LinearProblem(A, b)
+        sol = solve(prob, KrylovJL_GMRES()) 
+        return sol.u
+    end
 end
 
 N=21
@@ -134,7 +152,39 @@ if false     # PUT TRUE TO RUN
     V[12] = 0.25
     V = time_evolution_n(V, disj_T, 30, "time_evol_disj_400100")
     display(plot_bars(V, ""))
-    # This goes to 
 end
+
+### Trace back V[1/i] [Task 2.f]
+V = [1.0/i for i in 1:N]
+methods = ["invert", "LU", "CG", "Krylov_GMRES"]
+for met in methods
+    if met == "invert"
+        global V_exact = solve_linear_problem(T_mat, V, met)
+        println(V_exact)
+    end
+    println(met)
+    new_V = solve_linear_problem(T_mat, V, met) # precompile
+    @time solve_linear_problem(T_mat, V, met)
+    println("Error is : ", norm(new_V - V_exact))
+end
+
+# Now t-5dt
+for met in methods
+    V = [1.0/i for i in 1:N]
+    println(met)
+    solve_linear_problem(T_mat, V, met) # to precompile
+    @time begin
+        for _ in 1:5
+            V = solve_linear_problem(T_mat, V, met)
+        end
+    end
+    if met == "invert"
+        global V_exact = V
+        println(V)
+    end
+    println("Error is : ", norm(V - V_exact))
+end
+
+
 
 

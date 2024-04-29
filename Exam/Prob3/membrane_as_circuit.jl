@@ -32,7 +32,7 @@ function run_euler_explicit(v, α, β, n_steps)
         plot_potential(x, v, "Euler explicit, step "*string(k))
         push!(v_list, v)
     end
-    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Euler_explicit.gif", fps=10))
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Euler_explicit.gif", fps=10))
     display(plot_potential(x, v, "Euler explicit"))
     return v_list
 end
@@ -54,7 +54,7 @@ function run_exact_unbound(x, x0, λ, τ, V0, dt, n_steps)
         plot_potential(x, v, "Analytical unbound, step "*string(k))
         push!(v_list, v)
     end
-    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Exact.gif", fps=10))
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Exact.gif", fps=10))
     display(plot_potential(x, v_list[end], "Analytical unbound"))
     return v_list
 end
@@ -79,7 +79,7 @@ function run_euler_implicit(v, α, β, n_steps)
         plot_potential(x, v, "Euler implicit, step "*string(k))
         push!(v_list, v)
     end
-    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Euler_implicit.gif", fps=10))
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Euler_implicit.gif", fps=10))
     display(plot_potential(x, v, "Euler implicit"))
     return v_list
 end
@@ -104,7 +104,7 @@ function run_CN(v, α, β, n_steps)
         plot_potential(x, v, "Crank Nicolson, step "*string(k))
         push!(v_list, v)
     end
-    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Crank_Nicolson.gif", fps=10))
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Crank_Nicolson.gif", fps=10))
     display(plot_potential(x, v, "Crank Nicolson"))
     return v_list
 end
@@ -126,7 +126,7 @@ function compare_with_gif(v_lists, labels)
     anim = @animate for k in 1:n_steps # 
         plot_list(v_lists, labels, k)
     end
-    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Comparison.gif", fps=10))
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Comparison.gif", fps=10))
 end
 
 

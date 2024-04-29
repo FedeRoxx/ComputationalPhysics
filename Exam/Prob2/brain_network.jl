@@ -42,7 +42,7 @@ function time_evolution_n(V, T_mat, n_steps, name)
         end
         plot_bars(V,L"t="*string(k)*L"\, dt")    
     end
-    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/$name.gif", fps=4))
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob2/$name.gif", fps=4))
     return V
 end
 
@@ -100,7 +100,7 @@ evecs = eigvecs(T_mat)
 
 ### Comparing at t=100 dt [Task 2d]
 # V = 1, 0, 0, 0, ...
-if false     # PUT TRUE TO RUN
+if true     # PUT TRUE TO RUN
     V = zeros(N)
     V[1] = 1.0
     V = time_evolution_n(V, T_mat, 100, "time_evol_100000")
@@ -134,7 +134,7 @@ evecs = eigvecs(disj_T)
 #         Eigvals in pairs. 11 in 5 pairs and one "1".
 #                           10 in 4 pairs and one "1" and one "0"
 
-if false     # PUT TRUE TO RUN
+if true     # PUT TRUE TO RUN
     V = zeros(N)
     V[1] = 1.0
     V = time_evolution_n(V, disj_T, 30, "time_evol_disj_100000")

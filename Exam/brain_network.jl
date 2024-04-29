@@ -40,7 +40,7 @@ function time_evolution_n(V, T_mat, n_steps, name)
         if k>0
             V = T_mat * V
         end
-        plot_bars(V,L"t="*string(k)*L"dt")    
+        plot_bars(V,L"t="*string(k)*L"\, dt")    
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/$name.gif", fps=4))
     return V
@@ -69,11 +69,22 @@ function solve_linear_problem(A, b, method)
 end
 
 N=21
+x = 1:N
 ### Building matrix T [Task 2a]
 T_mat = build_T(N)
 display(T_mat)
 
 ### Running time evolution [Task 2b]
+V = zeros(N)
+V[1] = 1.0
+bar(x, V, ylim=(0,1), label=L"t=0", xlabel=L"n", ylabel=L"V(n)", legend=true)
+V = T_mat * V
+bar!(x, V, label=L"t = dt")
+V = T_mat * V
+bar!(x, V, label=L"t=2\,dt")
+V = T_mat^98 * V
+display(bar!(x, V, label=L"t=100\,dt"))
+
 V = zeros(N)
 V[1] = 1.0
 V = time_evolution_n(V, T_mat, 30, "time_evol_100000")

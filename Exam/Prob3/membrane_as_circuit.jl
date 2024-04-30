@@ -129,10 +129,17 @@ function compare_with_gif(v_lists, labels)
     display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Comparison.gif", fps=10))
 end
 
+function compare_in_plot(v_lists, labels, timesteps)
+    for k in timesteps # 
+        display(plot_list(v_lists, labels, k))
+    end
+end
 
 
 
 dt = 0.00015
+# dt = 0.0002004
+
 
 L = 1.0  # Interval is [0,L]
 N = 51 # n of points
@@ -161,3 +168,4 @@ v_list_exact = run_exact_unbound(x, x0, λ, τ, 1.0, dt, n_steps)
 # display(plot_potential(x, v_list_exact[end], "After EXACT"))
 
 compare_with_gif([v_list_EE, v_list_EI, v_list_CN, v_list_exact], ["Explicit euler", "Implicit euler", "Crank Nicolson", "Exact unbound"])
+compare_in_plot([v_list_EE, v_list_EI, v_list_CN, v_list_exact], ["Explicit euler", "Implicit euler", "Crank Nicolson", "Exact unbound"], [25,100,500])

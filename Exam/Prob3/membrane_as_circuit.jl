@@ -110,7 +110,7 @@ function run_CN(v, α, β, n_steps)
 end
 
 function plot_list(v_lists, labels, k)
-    p = plot(ylim=(-0.005, 5), label=labels[1], xlabel=L"x", ylabel=L"V(x)", title="Step "*string(k), legend=true)
+    p = plot(ylim=(-0.005, 5), label=labels[1], xlabel=L"x", ylabel=L"V(x)", title="All methods compared, step "*string(k), legend=true)
     for (i, v_list) in enumerate(v_lists)
         if labels[i] == "Exact unbound"
             plot!(p, x, v_list[k], label=labels[i])

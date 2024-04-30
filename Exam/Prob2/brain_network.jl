@@ -159,7 +159,7 @@ if true     # PUT TRUE TO RUN
     V = zeros(N)
     V[1] = 0.75
     V[12] = 0.25
-    V = time_evolution_n(V, disj_T, 30, "time_evol_disj_400100")
+    V = time_evolution_n(V, disj_T, 30, "time_evol_disj_300100")
     display(plot_bars(V, ""))
 end
 

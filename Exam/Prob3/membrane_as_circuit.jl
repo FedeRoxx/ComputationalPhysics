@@ -136,10 +136,13 @@ function compare_in_plot(v_lists, labels, timesteps)
 end
 
 
+#########################
+# Problem 3, first part #
+#########################
 
-dt = 0.00015
-# dt = 0.0002004
-
+dt = 0.00015 # for α=0.375
+# dt = 0.0002004  # for α=0.501
+# dt = 0.001 # for α=2.5
 
 L = 1.0  # Interval is [0,L]
 N = 51 # n of points
@@ -151,21 +154,192 @@ x0 = L/2
 β = dt / τ
 @show α = λ^2*β/dx^2
 
+n_steps = 100
+
+if false   # Set this to true to run 
+    v = initialize_gaussian(x, x0, 0.01)
+    @show V0 = trapezoidal_integral(v, dx)
+    v = v / V0
+    display(plot_potential(x, v, "Initial potential"))
+
+    v_list_EE = run_euler_explicit(v, α, β, n_steps)
+    v_list_EI = run_euler_implicit(v, α, β, n_steps)
+    v_list_CN = run_CN(v, α, β, n_steps)
+    v_list_exact = run_exact_unbound(x, x0, λ, τ, 1.0, dt, n_steps)
+
+    compare_with_gif([v_list_EE, v_list_EI, v_list_CN, v_list_exact], ["Explicit euler", "Implicit euler", "Crank Nicolson", "Exact unbound"])
+    compare_in_plot([v_list_EE, v_list_EI, v_list_CN, v_list_exact], ["Explicit euler", "Implicit euler", "Crank Nicolson", "Exact unbound"], [25,100,500])
+end
+
+##########################
+# Problem 3, second part #
+##########################
+
+function g_Na(V, V_star, γ, g_K)
+    g_Na = exp(γ*(V_star - V))
+    g_Na = 100/(1+g_Na) + 0.2
+    return g_Na/g_K
+end
+
+function CN_iteration(v, α, β, V_Na, V_K, γ, V_star, g_K)
+    # Get C, q to solve v_n+1 = C v_n + q
+    N = length(v)
+
+    g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
+    diag_plus = ones(N) * (1 + α + β/2)
+    diag_plus +=  β/2 * g_na_vec
+    diag_minus = ones(N) * (1 - α - β/2)
+    diag_minus -=  β/2 * g_na_vec
+
+    upp_diag = -α/2* ones(N-1)
+    upp_diag[1] = -α
+    low_diag = -α/2* ones(N-1)
+    low_diag[end] = -α
+    A = Tridiagonal(low_diag, diag_plus, upp_diag)
+    B = Tridiagonal(-low_diag, diag_minus, -upp_diag)
+
+    q = ones(N) * β * V_K
+    q += g_na_vec * β * V_Na
+    v = B*v + q
+    v = inv(A) * v
+
+    return v
+end
+
+function CN_iteration_shifted(v, α, β, V_Na, V_K, γ, V_star, g_K)
+    # Get C, q to solve v_n+1 = C v_n + q
+    N = length(v)
+
+    g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
+    g_na_vec[1:38] .= 0.0
+    diag_plus = ones(N) * (1 + α + β/2)
+    diag_plus +=  β/2 * g_na_vec
+    diag_minus = ones(N) * (1 - α - β/2)
+    diag_minus -=  β/2 * g_na_vec
+
+    upp_diag = -α/2* ones(N-1)
+    upp_diag[1] = -α
+    low_diag = -α/2* ones(N-1)
+    low_diag[end] = -α
+    A = Tridiagonal(low_diag, diag_plus, upp_diag)
+    B = Tridiagonal(-low_diag, diag_minus, -upp_diag)
+
+    q = ones(N) * β * V_K
+    q += g_na_vec * β * V_Na
+    v = B*v + q
+    v = inv(A) * v
+
+    return v
+end
+
+function EE_iteration(v, α, β, V_Na, V_K, γ, V_star, g_K)
+    # Get C, q to solve v_n+1 = C v_n + q
+    N = length(v)
+
+    g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
+    diag_minus = ones(N) * (1 - 2α - β)
+    diag_minus -=  β * g_na_vec
+
+    upp_diag = -α* ones(N-1)
+    upp_diag[1] = -2α
+    low_diag = -α* ones(N-1)
+    low_diag[end] = -2α
+    B = Tridiagonal(-low_diag, diag_minus, -upp_diag)
+
+    q = ones(N) * β * V_K
+    q += g_na_vec * β * V_Na
+    v = B*v + q
+
+    return v
+end
+
+function run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+    v_list = []
+    anim = @animate for k in 1:n_steps
+        v_old = deepcopy(v)
+        v = CN_iteration_shifted(v, α, β, V_Na, V_K, γ, V_star, g_K)
+        if 10<k<30
+            @show g_na_vec_old = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
+            @show g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v_old]
+        end
+        plot_potential_channel(x, v, "Crank Nicolson, step "*string(k))
+        push!(v_list, v)
+    end
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Crank_Nicolson_channel.gif", fps=10))
+    display(plot_potential_channel(x, v, "Crank Nicolson"))
+    return v_list
+end
+
+function run_EE_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+    v_list = []
+    anim = @animate for k in 1:n_steps
+        v = EE_iteration(v, α, β, V_Na, V_K, γ, V_star, g_K)
+        plot_potential_channel(x, v, "Euler explicit, step "*string(k))
+        push!(v_list, v)
+    end
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Euler_explicit_channel.gif", fps=10))
+    display(plot_potential_channel(x, v, "Euler explicit"))
+    return v_list
+end
+
+function initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
+    gaussian = exp.(-0.5 * ((x .- x0) / λ).^2) 
+    return (V_appl-V_mem)*gaussian .+ V_mem
+end
+
+function plot_potential_channel(x, v, title)
+    plot(x, v, ylim=(-75, 50), xlabel=L"x", ylabel=L"V(x)", title=title, legend=false)
+end
+
+function plot_list_channel(v_lists, labels, k)
+    p = plot(ylim=(-75, 50), label=labels[1], xlabel=L"x", ylabel=L"V(x)", title="All methods compared, step "*string(k), legend=true)
+    for (i, v_list) in enumerate(v_lists)
+        if labels[i] == "Exact unbound"
+            plot!(p, x, v_list[k], label=labels[i])
+        else
+            plot!(p, x, v_list[k], label=labels[i], marker=:x)
+        end
+    end
+    return plot!(p)
+end
+
+function compare_with_gif_channel(v_lists, labels)
+    n_steps = length(v_lists[1])
+    anim = @animate for k in 1:n_steps # 
+        plot_list_channel(v_lists, labels, k)
+    end
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Comparison_channel.gif", fps=10))
+end
+
+dt = 0.005 # for α=0.375
+# dt = 0.0002004  # for α=0.501
+# dt = 0.001 # for α=2.5
+
+L = 1.0  # Interval is [0,L]    
+N = 51 # n of points
+@show dx = L/(N-1)
+x = [i*dx for i in 0:N-1]
+x0 = L/2
+λ = 0.18
+τ = 2.0
+β = dt / τ
+@show α = λ^2*β/dx^2
+γ = 0.5
+V_star = -40
+V_Na = 56
+V_K = -76
+g_K = 5.0
+
+###NOTE###
+# Now times are in ms, lengths in mm and V in mV
+
 n_steps = 500
+V_appl = 0
+V_mem = -70
+v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
+v_list_channel = run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
 
-v = initialize_gaussian(x, x0, 0.01)
-@show V0 = trapezoidal_integral(v, dx)
-v = v / V0
-display(plot_potential(x, v, "Before"))
-
-v_list_EE = run_euler_explicit(v, α, β, n_steps)
-
-v_list_EI = run_euler_implicit(v, α, β, n_steps)
-
-v_list_CN = run_CN(v, α, β, n_steps)
-
-v_list_exact = run_exact_unbound(x, x0, λ, τ, 1.0, dt, n_steps)
-# display(plot_potential(x, v_list_exact[end], "After EXACT"))
-
-compare_with_gif([v_list_EE, v_list_EI, v_list_CN, v_list_exact], ["Explicit euler", "Implicit euler", "Crank Nicolson", "Exact unbound"])
-compare_in_plot([v_list_EE, v_list_EI, v_list_CN, v_list_exact], ["Explicit euler", "Implicit euler", "Crank Nicolson", "Exact unbound"], [25,100,500])
+# ###Testing Euler explicit
+# v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
+# v_list_channel_EE = run_EE_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+# compare_with_gif_channel([v_list_channel, v_list_channel_EE], ["CN", "EE"])

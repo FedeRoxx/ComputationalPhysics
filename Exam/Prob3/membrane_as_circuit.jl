@@ -232,7 +232,7 @@ function run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
     anim = @animate for k in 1:n_steps
         # v_old = deepcopy(v)
         v = CN_iteration(v, α, β, V_Na, V_K, γ, V_star, g_K)
-        # if 10<k<30
+        # if 10<k<30 ## Checking that g_Na in not changing too much
         #     @show g_na_vec_old = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
         #     @show g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v_old]
         # end
@@ -318,22 +318,23 @@ n_steps = 500
 V_appl = -50
 V_mem = -70
 
-### Run with V_appl = -50 [Task a]
-v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
-v_list_channel = run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
-display(plot_potential_with_time(v_list_channel, 30, dt))
-
-### Testing different V_appl [Task b]
-p = plot(ylim=(-75, 50), xlabel=L"t"*" [ms]", ylabel=L"V(t)"*" [mV]", title="Evolution of potential at "*L"x=0.76"*" mm", legend=:right)
-for V_appl in [-60, -50, -47, -46, -43, -40]
+if false # Set this to true to run 
+    ### Run with V_appl = -50 [Task a]
     v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
-    new_v_list_channel = run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
-    t = [dt*i for i in 1:n_steps]
-    v_points = [v_i[38] for v_i in new_v_list_channel]
-    plot!(p, t, v_points, label=L"V_{appl}="*string(V_appl)*" mV")
-end
-display(plot!(p))
+    v_list_channel = run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+    display(plot_potential_with_time(v_list_channel, 30, dt))
 
+    ### Testing different V_appl [Task b]
+    p = plot(ylim=(-75, 50), xlabel=L"t"*" [ms]", ylabel=L"V(t)"*" [mV]", title="Evolution of potential at "*L"x=0.76"*" mm", legend=:right)
+    for V_appl in [-60, -50, -47, -46, -43, -40]
+        v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
+        new_v_list_channel = run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+        t = [dt*i for i in 1:n_steps]
+        v_points = [v_i[38] for v_i in new_v_list_channel]
+        plot!(p, t, v_points, label=L"V_{appl}="*string(V_appl)*" mV")
+    end
+    display(plot!(p))
+end
 
 # ###Testing Euler explicit
 # v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
@@ -352,8 +353,7 @@ function CN_iteration_shifted(v, α, β, V_Na, V_K, γ, V_star, g_K)
     # This time g is kept zero up to 1mm
     g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
     g_na_vec[1:20] .= 0.0
-    # g_na_vec = zeros(N)
-    # g_na_vec[21] = g_Na(v[21], V_star, γ, g_K)
+
     diag_plus = ones(N) * (1 + α + β/2)
     diag_plus +=  β/2 * g_na_vec
     diag_minus = ones(N) * (1 - α - β/2)
@@ -377,17 +377,17 @@ end
 function run_CN_channels_shifted(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
     v_list = []
     anim = @animate for k in 1:n_steps
-        v_old = deepcopy(v)
+        # v_old = deepcopy(v)
         v = CN_iteration_shifted(v, α, β, V_Na, V_K, γ, V_star, g_K)
-        if 10<k<30
-            @show g_na_vec_old = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
-            @show g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v_old]
-        end
-        plot_potential_channel(x, v, "Crank Nicolson, step "*string(k))
+        # if 10<k<30  ## Checking that g_Na in not changing too much
+        #     @show g_na_vec_old = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
+        #     @show g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v_old]
+        # end
+        plot_potential_channel(x, v, "Crank Nicolson with "*L"V_{appl}="*"-14 mV, step "*string(k))
         push!(v_list, v)
     end
     display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Crank_Nicolson_shifted_channel.gif", fps=10))
-    display(plot_potential_channel(x, v, "Crank Nicolson"))
+    display(plot_potential_channel(x, v, "Crank Nicolson with "*L"V_{appl}="*"-14 mV"))
     return v_list
 end
 
@@ -414,7 +414,21 @@ g_K = 5.0
 # Now times are in ms, lengths in mm and V in mV
 
 n_steps = 500
-V_appl = 0
+V_appl = -14
 V_mem = -70
+
+
 v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
-# v_list_channel = run_CN_channels(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+v_list_channel = run_CN_channels_shifted(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+
+if false # Set this to true to run 
+    p = plot(ylim=(-75, 50), xlabel=L"t"*" [ms]", ylabel=L"V(t)"*" [mV]", title="Evolution of potential at "*L"x=2.0"*" mm", legend=:right)
+    for V_appl in [-40, -20, -14, -13, -10, 10]
+        v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
+        new_v_list_channel = run_CN_channels_shifted(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+        t = [dt*i for i in 1:n_steps]
+        v_points = [v_i[40] for v_i in new_v_list_channel]
+        plot!(p, t, v_points, label=L"V_{appl}="*string(V_appl)*" mV")
+    end
+    display(plot!(p))
+end

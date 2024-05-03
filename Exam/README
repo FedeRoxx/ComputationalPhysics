@@ -1,0 +1,13 @@
+brain_network.jl contains the solution of Prob.2 of the exam
+membrane_as_circuit.jl contains the solution of Prob.3 of the exam
+
+In both cases, the different tasks are done one after the other, defining a block of functions that are then called
+
+There might be structures in the form of:
+
+if false
+    [operations]
+    ...
+end
+
+which needs to be set to true to run that particular task/solution. This is done to avoid running everything every time.

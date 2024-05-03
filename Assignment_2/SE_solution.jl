@@ -488,10 +488,10 @@ for v1 in -500:500
     end
 end
 
-plot(v_list, λ1_list, xlabel=L"v_1", label=L" λ_0", title="Eigenvalues depending on "*L"v_1")
-display(plot!(v_list, λ2_list, label=L"λ_1"))
+plot(v_list, λ1_list, xlabel=L"v_1", ylabel="Eigenvalues energy", label=L" λ_1", title="Eigenvalues depending on "*L"v_1")
+display(plot!(v_list, λ2_list, label=L"λ_2"))
 
-display(plot(v_list, λ2_list .- λ1_list, xlabel=L"v_1", label=L"λ_1-λ_0", title="Eigenvalues difference depending on "*L"v_1"))
+display(plot(v_list, λ2_list .- λ1_list, xlabel=L"v_1", ylabel="Eigenvalues difference", label=L"λ_2-λ_1", title="Eigenvalues difference depending on "*L"v_1"))
 
 # Checks for tau when v1=0 
 V_n = double_potential_barrier(v0, 0.0, N, dx)

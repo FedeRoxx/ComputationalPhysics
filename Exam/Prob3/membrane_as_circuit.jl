@@ -262,7 +262,7 @@ function initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
 end
 
 function plot_potential_channel(x, v, title)
-    plot(x, v, ylim=(-75, 50), xlabel=L"x"*" [mm]", ylabel=L"V(x)"*" [mV]", title=title, legend=false)
+    plot(x, v, ylim=(-80, 50), xlabel=L"x"*" [mm]", ylabel=L"V(x)"*" [mV]", title=title, legend=false)
 end
 
 function plot_list_channel(v_lists, labels, k)
@@ -418,10 +418,10 @@ V_appl = -14
 V_mem = -70
 
 
-v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
-v_list_channel = run_CN_channels_shifted(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
-
 if false # Set this to true to run 
+    v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
+    v_list_channel = run_CN_channels_shifted(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+
     p = plot(ylim=(-75, 50), xlabel=L"t"*" [ms]", ylabel=L"V(t)"*" [mV]", title="Evolution of potential at "*L"x=2.0"*" mm", legend=:right)
     for V_appl in [-40, -20, -14, -13, -10, 10]
         v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
@@ -432,3 +432,86 @@ if false # Set this to true to run
     end
     display(plot!(p))
 end
+
+#
+### Final testing, trying to introduce termination and afterhyperpolarization
+#
+
+function CN_iteration_shifted_closing(v, α, β, V_Na, V_K, g_na_vec)
+    # Get C, q to solve v_n+1 = C v_n + q
+    N = length(v)
+
+    diag_plus = ones(N) * (1 + α + β/2)
+    diag_plus +=  β/2 * g_na_vec
+    diag_minus = ones(N) * (1 - α - β/2)
+    diag_minus -=  β/2 * g_na_vec
+
+    upp_diag = -α/2* ones(N-1)
+    upp_diag[1] = -α
+    low_diag = -α/2* ones(N-1)
+    low_diag[end] = -α
+    A = Tridiagonal(low_diag, diag_plus, upp_diag)
+    B = Tridiagonal(-low_diag, diag_minus, -upp_diag)
+
+    q = ones(N) * β * V_K
+    q += g_na_vec * β * V_Na
+    v = B*v + q
+    v = inv(A) * v
+
+    return v
+end
+
+function build_g_na_vec(v, γ, V_star, g_K, activation_logger, V_K, V_Na)
+    g_na_vec = [g_Na(V_i, V_star, γ, g_K) for V_i in v]
+    g_na_vec[1:20] .= 0.0
+
+    for (ind, time) in enumerate(activation_logger)
+        if g_na_vec[ind] > 15 || time > 5 # Start the timer when active and continue adding if it was started
+            activation_logger[ind] += 1
+        end
+        if time > 300  # After 300, reset the logger
+            activation_logger[ind] = 0
+        end
+        if 300 > time > 50 # After 50, g is kept zero until 300 steps
+            g_na_vec[ind] = 0.0
+        end
+    end
+    #Here the additional term, always added. Is zero if logger is zero.
+    vect =   (v .- V_K) ./ (v .- V_Na) 
+    g_na_vec = g_na_vec + 0.03 * vect .* activation_logger
+    g_na_vec[1:20] .= 0.0
+    #End of additional term
+    return activation_logger, g_na_vec
+end
+
+function run_CN_channels_shifted_and_closing(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+    v_list = []
+    activation_logger = zeros(length(v))
+    anim = @animate for k in 1:n_steps
+        @show activation_logger, g_na_vec = build_g_na_vec(v, γ, V_star, g_K, activation_logger, V_K, V_Na)
+        v = CN_iteration_shifted_closing(v, α, β, V_Na, V_K, g_na_vec)
+        plot_potential_channel(x, v, "Modified CN with "*L"V_{appl}="*"-10 mV, step "*string(k))
+        push!(v_list, v)
+    end
+    display(gif(anim, "/home/frossi/ComputationalPhysics/Exam/Prob3/Crank_Nicolson_shifted_modified.gif", fps=40))
+    display(plot_potential_channel(x, v, "C-N closing channel with "*L"V_{appl}="*"-10 mV"))
+    return v_list
+end
+
+function plot_potential_with_time_special(v_list, point, dt)
+    # Only thing changed is that now goes down to -80
+    N = length(v_list)
+    t = [dt*i for i in 1:N]
+    v = [v_i[point] for v_i in v_list]
+    plot(t, v, ylim=(-80, 50), xlabel=L"t", ylabel=L"V(t)", title="Evolution of potential at "*L"x=2.0"*" mm", legend=false)
+end
+
+n_steps = 1000
+V_appl = -10
+V_mem = -70
+
+
+v = initialize_gauss_channel(x, V_appl, V_mem, x0, λ)
+v_list_channel_closing = run_CN_channels_shifted_and_closing(v, α, β, n_steps, V_Na, V_K, γ, V_star, g_K)
+plot_potential_with_time_special(v_list_channel_closing, 40, dt)
+
